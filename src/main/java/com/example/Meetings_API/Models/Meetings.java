@@ -31,9 +31,23 @@ public class Meetings {
     public Meetings() {
         readMeetings();
     }
-    public void addMeeting( Meeting meeting) {
+    public void addMeeting(Meeting meeting) {
         readMeetings();
         meetings.add(meeting);
         writeMeetings();
+    }
+    public Meeting getMeeting(String id)
+    {
+        for (Meeting meeting: meetings
+             ) {
+            if(meeting.getId().equals(id))
+                return meeting;
+        }
+        return null;
+    }
+    public void removeMeeting(Meeting meeting)
+    {
+        if(meetings.remove(meeting))
+            writeMeetings();
     }
 }
