@@ -30,4 +30,18 @@ public class Meeting {
     public Meeting() {
         this.id = UUID.randomUUID().toString();
     }
+    public boolean doesContainPersonAsAttendee(Person person)
+    {
+        for (Attendee attendee: attendees) {
+            if (attendee.getPerson().getId().equals(person.getId()))
+                return true;
+        }
+        return false;
+    }
+
+   public void addAttendee(Person person)
+   {
+       Attendee attendee = new Attendee(person);
+       attendees.add(attendee);
+   }
 }

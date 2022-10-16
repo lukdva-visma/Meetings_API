@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Date;
+import java.util.UUID;
 
 public class Attendee {
     @Getter @Setter
@@ -14,4 +15,9 @@ public class Attendee {
     private Date added;
 
     public Attendee() {}
+    public Attendee(Person person) {
+        id = UUID.randomUUID().toString();
+        added = new Date();
+        this.person = person;
+    }
 }

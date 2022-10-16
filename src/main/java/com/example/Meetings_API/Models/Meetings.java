@@ -1,40 +1,15 @@
 package com.example.Meetings_API.Models;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
-
-import java.io.File;
-import java.io.IOException;
+import lombok.Setter;
 import java.util.ArrayList;
 
 public class Meetings {
-    @Getter
+    @Getter @Setter
     private ArrayList<Meeting> meetings = new ArrayList<>();
-    private final ObjectMapper mapper = new ObjectMapper();
-    private final File file = new File("meetings.json");
 
-    private void readMeetings() {
-        try {
-            meetings = mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {});
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    private void writeMeetings() {
-        try {
-            mapper.writeValue(file, meetings);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    public Meetings() {
-        readMeetings();
-    }
+    public Meetings() {}
     public void addMeeting(Meeting meeting) {
-        readMeetings();
         meetings.add(meeting);
-        writeMeetings();
     }
     public Meeting getMeeting(String id)
     {
@@ -47,7 +22,31 @@ public class Meetings {
     }
     public void removeMeeting(Meeting meeting)
     {
-        if(meetings.remove(meeting))
-            writeMeetings();
+        meetings.remove(meeting);
+    }
+    public boolean isMeetingAvailable(String id) {
+        if (getMeeting(id) == null)
+            return false;
+        return true;
+    }
+    public ArrayList<Meeting> listOfMeetingsPersonIsIn(Person person) {
+        ArrayList<Meeting> list = new ArrayList<>();
+        for (Meeting meeting: meetings) {
+            if(meeting.doesContainPersonAsAttendee(person))
+                list.add(meeting);
+        }
+        return list;
+    }
+    public boolean personHasConflictingMeetings(Person person, Meeting meetingToBeAttended) {
+        ArrayList<Meeting> list = listOfMeetingsPersonIsIn(person);
+        for (Meeting meeting: list) {
+            if (dateRangesOverlap(meeting, meetingToBeAttended))
+                return true;
+        }
+        return false;
+
+    }
+    public boolean dateRangesOverlap(Meeting meeting1, Meeting meeting2) {
+        return (meeting1.getStartDate().before(meeting2.getEndDate()) && meeting1.getEndDate().after(meeting2.getStartDate()));
     }
 }
