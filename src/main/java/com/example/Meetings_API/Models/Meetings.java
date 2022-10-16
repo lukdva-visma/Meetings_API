@@ -90,16 +90,26 @@ public class Meetings {
         }
         return filteredMeetings;
     }
-//    public Meetings filterByDates (Date start, Date end)
-//    {
-//        Meetings filteredMeetings = new Meetings();
-//        for (Meeting meeting: meetings) {
-//            if (start.meeting.getType() == Type.valueOf(type)){
-//                filteredMeetings.addMeeting(meeting);
-//            }
-//        }
-//        return filteredMeetings;
-//    }
+    public Meetings filterByStartDate (Date start)
+    {
+        Meetings filteredMeetings = new Meetings();
+        for (Meeting meeting: meetings) {
+            if (meeting.getStartDate().after(start)){
+                filteredMeetings.addMeeting(meeting);
+            }
+        }
+        return filteredMeetings;
+    }
+    public Meetings filterByEndDate (Date end)
+    {
+        Meetings filteredMeetings = new Meetings();
+        for (Meeting meeting: meetings) {
+            if (meeting.getEndDate().before(end)){
+                filteredMeetings.addMeeting(meeting);
+            }
+        }
+        return filteredMeetings;
+    }
     public Meetings filterByAttendeesCount (int count)
     {
         Meetings filteredMeetings = new Meetings();

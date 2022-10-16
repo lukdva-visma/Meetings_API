@@ -13,7 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Optional;
 
 @RestController
@@ -82,9 +85,11 @@ public class MeetingController {
     }
 
     @GetMapping("/meetings")
-    public ArrayList<Meeting> getMeetings( @RequestParam Optional<String> description, @RequestParam Optional<String> responsiblePersonId, @RequestParam Optional<String> category, @RequestParam Optional<String> type, @RequestParam Optional<String> attendees) {
+    public ArrayList<Meeting> getMeetings(@RequestParam Optional<String> start, @RequestParam Optional<String> end, @RequestParam Optional<String> description, @RequestParam Optional<String> responsiblePersonId, @RequestParam Optional<String> category, @RequestParam Optional<String> type, @RequestParam Optional<String> attendees) {
         meetingsService.readMeetings();
         Meetings filteredMeetings = meetings;
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat formatterWithTime = new SimpleDateFormat("yyyy-MM-dd HH");
         if(description.isPresent())
             filteredMeetings = filteredMeetings.filterByDescription(description.get());
         if(responsiblePersonId.isPresent())
@@ -95,6 +100,20 @@ public class MeetingController {
             filteredMeetings = filteredMeetings.filterByType(type.get());
         if(attendees.isPresent())
             filteredMeetings = filteredMeetings.filterByAttendeesCount(Integer.parseInt(attendees.get()));
+        if(start.isPresent())
+            try {
+                Date startDate = formatter.parse(start.get());
+                filteredMeetings = filteredMeetings.filterByStartDate(startDate);
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        if(end.isPresent())
+            try {
+                Date endDate = formatterWithTime.parse(end.get() + " 24"); // Adding 24 hours so it includes whole day
+                filteredMeetings = filteredMeetings.filterByEndDate(endDate);
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
         return filteredMeetings.getMeetings();
     }
 }
