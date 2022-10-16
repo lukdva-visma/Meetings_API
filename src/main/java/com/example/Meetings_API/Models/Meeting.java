@@ -30,10 +30,10 @@ public class Meeting {
     public Meeting() {
         this.id = UUID.randomUUID().toString();
     }
-    public boolean doesContainPersonAsAttendee(Person person)
+    public boolean doesContainPersonAsAttendee(String id)
     {
         for (Attendee attendee: attendees) {
-            if (attendee.getPerson().getId().equals(person.getId()))
+            if (attendee.getPerson().getId().equals(id))
                 return true;
         }
         return false;

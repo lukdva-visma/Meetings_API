@@ -13,6 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Optional;
+
 @RestController
 public class MeetingController {
 
@@ -54,7 +57,7 @@ public class MeetingController {
         if (!meetings.isMeetingAvailable(id))
             throw new NotFoundException();
         Meeting meeting = meetings.getMeeting(id);
-        if(meeting.doesContainPersonAsAttendee(person))
+        if(meeting.doesContainPersonAsAttendee(person.getId()))
             throw new BadRequestException("Person already added to meeting");
         if (meetings.personHasConflictingMeetings(person, meeting))
             throw  new BadRequestException("Person has conflicting meetings");
@@ -76,5 +79,22 @@ public class MeetingController {
         meeting.removeAttendee(attendee);
         meetingsService.writeMeetings();
         return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
+    }
+
+    @GetMapping("/meetings")
+    public ArrayList<Meeting> getMeetings( @RequestParam Optional<String> description, @RequestParam Optional<String> responsiblePersonId, @RequestParam Optional<String> category, @RequestParam Optional<String> type, @RequestParam Optional<String> attendees) {
+        meetingsService.readMeetings();
+        Meetings filteredMeetings = meetings;
+        if(description.isPresent())
+            filteredMeetings = filteredMeetings.filterByDescription(description.get());
+        if(responsiblePersonId.isPresent())
+            filteredMeetings = filteredMeetings.filterByResponsiblePerson(responsiblePersonId.get());
+        if(category.isPresent())
+            filteredMeetings = filteredMeetings.filterByCategory(category.get());
+        if(type.isPresent())
+            filteredMeetings = filteredMeetings.filterByType(type.get());
+        if(attendees.isPresent())
+            filteredMeetings = filteredMeetings.filterByAttendeesCount(Integer.parseInt(attendees.get()));
+        return filteredMeetings.getMeetings();
     }
 }
