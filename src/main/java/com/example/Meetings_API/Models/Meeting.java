@@ -44,4 +44,21 @@ public class Meeting {
        Attendee attendee = new Attendee(person);
        attendees.add(attendee);
    }
+   public Attendee getAttendee(String id){
+       for (Attendee attendee: attendees) {
+           if(attendee.getId().equals(id))
+               return attendee;
+       }
+       return null;
+   }
+   public void removeAttendee(Attendee attendee)
+   {
+       attendees.remove(attendee);
+   }
+   public boolean isAttendeeAvailable(String id)
+   {
+       if(getAttendee(id) == null)
+           return false;
+       return true;
+   }
 }
