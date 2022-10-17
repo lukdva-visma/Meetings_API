@@ -4,6 +4,10 @@ You can start project by opening terminal and going to root directory and execut
 ```
 ./mvnw spring-boot:run
 ```
+You can run unit tests by opening terminal and going to root directory and executing command:
+```
+./mvnw  test
+```
 JDK version 11.0.16.1
 
 ### Add a meeting
