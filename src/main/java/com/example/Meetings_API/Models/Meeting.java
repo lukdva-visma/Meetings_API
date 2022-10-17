@@ -30,6 +30,16 @@ public class Meeting {
     public Meeting() {
         this.id = UUID.randomUUID().toString();
     }
+    public Meeting(String name, Person responsiblePerson, String description, Category category, Type type, Date startDate, Date endDate) {
+        this.id = UUID.randomUUID().toString();
+        this.name = name;
+        this.responsiblePerson = responsiblePerson;
+        this.description = description;
+        this.category = category;
+        this.type = type;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
     public boolean doesContainPersonAsAttendee(String id)
     {
         for (Attendee attendee: attendees) {
