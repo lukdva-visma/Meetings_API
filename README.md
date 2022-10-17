@@ -1,5 +1,10 @@
 # Meetings_API
-This repository contains REST API for managing Meetings .
+This repository contains REST API for managing Meetings.    
+You can start project by opening terminal and going to root directory and executing command:
+```
+./mvnw spring-boot:run
+```
+JDK version 11.0.16.1
 
 ### Add a meeting
 POST localhost:8080/meetings    
@@ -69,6 +74,11 @@ HEADERS Authorization: Bearer {generatedJWTToken}
   "iat": 1516239022
 }
 ```
+3. Generate .env file at root directory of application and add JWT secret to .env file 
+```
+SECRET=your-256-bit-secret
+```
+
 Responses
 - Success: 
     - Status: 204 No Content   
