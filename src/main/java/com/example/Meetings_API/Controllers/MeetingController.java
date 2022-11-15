@@ -4,10 +4,10 @@ import com.example.Meetings_API.Exceptions.BadRequestException;
 import com.example.Meetings_API.Exceptions.UnauthorizedException;
 import com.example.Meetings_API.Models.Attendee;
 import com.example.Meetings_API.Models.Meeting;
-import com.example.Meetings_API.Models.Meetings;
+import com.example.Meetings_API.Services.MeetingsService;
 import com.example.Meetings_API.Exceptions.NotFoundException;
 import com.example.Meetings_API.Models.Person;
-import com.example.Meetings_API.Services.MeetingsService;
+import com.example.Meetings_API.Repository.MeetingsRepository;
 import com.example.Meetings_API.Utils.JwtUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,24 +17,25 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
 public class MeetingController {
 
 
-    Meetings meetings = new Meetings();
-    MeetingsService meetingsService = new MeetingsService(meetings);
+    MeetingsService meetings = new MeetingsService();
+    MeetingsRepository meetingsRepository = new MeetingsRepository(meetings);
     JwtUtils jwtUtils = new JwtUtils();
     @ModelAttribute
     public void readFile() {
-        meetingsService.readMeetings();
+        meetingsRepository.readMeetings();
     }
     @PostMapping("/meetings")
     public Meeting createMeeting(@RequestBody Meeting meeting) {
         meetings.addMeeting(meeting);
         addAttendee(meeting.getId(), meeting.getResponsiblePerson());
-        meetingsService.writeMeetings();
+        meetingsRepository.writeMeetings();
         return meeting;
     }
 
@@ -49,7 +50,7 @@ public class MeetingController {
         if(meeting.getResponsiblePerson().getId().equals(personId))
         {
             meetings.removeMeeting(meeting);
-            meetingsService.writeMeetings();
+            meetingsRepository.writeMeetings();
             return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
         }
         throw new UnauthorizedException();
@@ -65,7 +66,7 @@ public class MeetingController {
         if (meetings.personHasConflictingMeetings(person, meeting))
             throw  new BadRequestException("Person has conflicting meetings");
         meeting.addAttendee(person);
-        meetingsService.writeMeetings();
+        meetingsRepository.writeMeetings();
         return meeting;
     }
 
@@ -80,14 +81,14 @@ public class MeetingController {
         if(attendee.getPerson().getId().equals(meeting.getResponsiblePerson().getId()))
             throw new BadRequestException("Cannot remove responsible person from meeting");
         meeting.removeAttendee(attendee);
-        meetingsService.writeMeetings();
+        meetingsRepository.writeMeetings();
         return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/meetings")
-    public ArrayList<Meeting> getMeetings(@RequestParam Optional<String> start, @RequestParam Optional<String> end, @RequestParam Optional<String> description, @RequestParam Optional<String> responsiblePersonId, @RequestParam Optional<String> category, @RequestParam Optional<String> type, @RequestParam Optional<String> attendees) {
-        meetingsService.readMeetings();
-        Meetings filteredMeetings = meetings;
+    public List<Meeting> getMeetings(@RequestParam Optional<String> start, @RequestParam Optional<String> end, @RequestParam Optional<String> description, @RequestParam Optional<String> responsiblePersonId, @RequestParam Optional<String> category, @RequestParam Optional<String> type, @RequestParam Optional<String> attendees) {
+        meetingsRepository.readMeetings();
+        MeetingsService filteredMeetings = meetings;
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
         SimpleDateFormat formatterWithTime = new SimpleDateFormat("yyyy-MM-dd HH");
         if(description.isPresent())

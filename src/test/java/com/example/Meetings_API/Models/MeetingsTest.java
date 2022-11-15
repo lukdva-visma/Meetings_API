@@ -1,11 +1,11 @@
 package com.example.Meetings_API.Models;
 
+import com.example.Meetings_API.Services.MeetingsService;
 import org.junit.jupiter.api.*;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,14 +26,14 @@ class MeetingsTest {
     @Test
     void verifyAddMeetingMethodAddsMeetingMeetingsList() {
         Meeting[] meetingsList = {meeting};
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         meetings.addMeeting(meeting);
         assertArrayEquals(meetings.getMeetings().toArray(), meetingsList);
     }
 
     @Test
     void getExistingMeetingReturnsAddedMeeting() {
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         meetings.addMeeting(meeting);
         Meeting retrievedMeeting = meetings.getMeeting(meeting.getId());
         assertEquals(retrievedMeeting, meeting);
@@ -41,14 +41,14 @@ class MeetingsTest {
 
     @Test
     void tryGettingMeetingNotInTheList() {
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         Meeting retrievedMeeting = meetings.getMeeting(meeting.getId());
         assertEquals(retrievedMeeting, null);
     }
 
     @Test
     void checkMeetingIsRemovedSuccessfully() {
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         meetings.addMeeting(meeting);
         meetings.removeMeeting(meeting);
         assertEquals(meetings.getMeetings().size(), 0);
@@ -56,13 +56,13 @@ class MeetingsTest {
 
     @Test
     void isMeetingAvailableReturnsTrueWhenMeetingIsPresent() {
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         meetings.addMeeting(meeting);
         assertTrue(meetings.isMeetingAvailable(meeting.getId()));
     }
     @Test
     void isMeetingAvailableReturnsFalseWhenMeetingIsNotPresent() {
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         assertFalse(meetings.isMeetingAvailable(meeting.getId()));
     }
 
@@ -70,11 +70,11 @@ class MeetingsTest {
     void listOfMeetingsPersonIsInWhenPersonHasNoMeetings() {
         //empty list
         Meeting[] emptyArray= {};
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         meeting.addAttendee(responsiblePerson);
         meetings.addMeeting(meeting);
         Person attendee = new Person("id2", "John Smith");
-        ArrayList<Meeting> listOfMeetings = meetings.listOfMeetingsPersonIsIn(attendee);
+        List<Meeting> listOfMeetings = meetings.listOfMeetingsPersonIsIn(attendee);
         assertArrayEquals(listOfMeetings.toArray(), emptyArray);
         // two meetings, returns one
     }
@@ -90,12 +90,12 @@ class MeetingsTest {
         meetingPersonIsIn.addAttendee(attendee);
 
         Meeting[] emptyArray= {meetingPersonIsIn};
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         meeting.addAttendee(responsiblePerson);
         meetings.addMeeting(meeting);
         meetings.addMeeting(meetingPersonIsIn);
 
-        ArrayList<Meeting> listOfMeetings = meetings.listOfMeetingsPersonIsIn(attendee);
+        List<Meeting> listOfMeetings = meetings.listOfMeetingsPersonIsIn(attendee);
         assertArrayEquals(listOfMeetings.toArray(), emptyArray);
     }
     @Test
@@ -110,7 +110,7 @@ class MeetingsTest {
 
         Person personWithConflictingMeetings = new Person("id123", "Mr. Conflict");
         meeting.addAttendee(personWithConflictingMeetings);
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         meetings.addMeeting(meeting);
         meetings.addMeeting(overlappingMeeting);
         assertTrue(meetings.personHasConflictingMeetings(personWithConflictingMeetings, overlappingMeeting));
@@ -127,7 +127,7 @@ class MeetingsTest {
 
         Person personWithoutConflictingMeetings = new Person("id123", "Mr. Conflict");
         meeting.addAttendee(personWithoutConflictingMeetings);
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
         meetings.addMeeting(meeting);
         meetings.addMeeting(nonOverlappingMeeting);
         assertFalse(meetings.personHasConflictingMeetings(personWithoutConflictingMeetings, nonOverlappingMeeting));
@@ -146,7 +146,7 @@ class MeetingsTest {
         Meeting meeting2 =  new Meeting();
         meeting2.setStartDate(start2);
         meeting2.setEndDate(end2);
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
 
         assertTrue(meetings.dateRangesOverlap(meeting1, meeting2));
     }
@@ -163,7 +163,7 @@ class MeetingsTest {
         Meeting meeting2 =  new Meeting();
         meeting2.setStartDate(start2);
         meeting2.setEndDate(end2);
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
 
         assertFalse(meetings.dateRangesOverlap(meeting1, meeting2));
     }
@@ -180,7 +180,7 @@ class MeetingsTest {
         Meeting meeting2 =  new Meeting();
         meeting2.setStartDate(start2);
         meeting2.setEndDate(end2);
-        Meetings meetings = new Meetings();
+        MeetingsService meetings = new MeetingsService();
 
         assertFalse(meetings.dateRangesOverlap(meeting1, meeting2));
     }
@@ -191,7 +191,7 @@ class MeetingsTest {
     @DisplayName("Tests for filtering meetings")
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class TestsFilteringMeetings {
-        Meetings meetings;
+        MeetingsService meetings;
         Meeting meeting1;
         Meeting meeting2;
         @BeforeAll
@@ -219,41 +219,41 @@ class MeetingsTest {
             Person responsiblePerson2 = new Person("ID2", "Dwayne Johnson");
             meeting2 = new Meeting(name2, responsiblePerson2, description2, category2, type2, start2, end2);
 
-            meetings = new Meetings();
+            meetings = new MeetingsService();
             meetings.addMeeting(meeting1);
             meetings.addMeeting(meeting2);
         }
         @Test
         void filterByCategoryReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting2};
-            Meetings filteredMeetings = meetings.filterByCategory("TeamBuilding");
+            MeetingsService filteredMeetings = meetings.filterByCategory("TeamBuilding");
             assertArrayEquals(filteredMeetings.getMeetings().toArray(),  expectedMeetings);
         }
         @Test
         void filterByCategoryReturnsNoMeetings() {
             Meeting[] expectedMeetings = {};
-            Meetings filteredMeetings = meetings.filterByCategory("CodeMonkey");
+            MeetingsService filteredMeetings = meetings.filterByCategory("CodeMonkey");
             assertArrayEquals(filteredMeetings.getMeetings().toArray(),  expectedMeetings);
         }
 
         @Test
         void filterByTypeReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting1};
-            Meetings filteredMeetings = meetings.filterByType("Live");
+            MeetingsService filteredMeetings = meetings.filterByType("Live");
             assertArrayEquals(filteredMeetings.getMeetings().toArray(),  expectedMeetings);
         }
 
         @Test
         void filterByDescriptionReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting2};
-            Meetings filteredMeetings = meetings.filterByDescription("java");
+            MeetingsService filteredMeetings = meetings.filterByDescription("java");
             assertArrayEquals(filteredMeetings.getMeetings().toArray(),  expectedMeetings);
         }
 
         @Test
         void filterByResponsiblePersonReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting1};
-            Meetings filteredMeetings = meetings.filterByResponsiblePerson("ID1");
+            MeetingsService filteredMeetings = meetings.filterByResponsiblePerson("ID1");
             assertArrayEquals(filteredMeetings.getMeetings().toArray(),  expectedMeetings);
         }
 
@@ -261,7 +261,7 @@ class MeetingsTest {
         void filterByStartDateReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting2};
             Date filterStart = new Date(1760745600); //2025-10-18
-            Meetings filteredMeetings = meetings.filterByStartDate(filterStart);
+            MeetingsService filteredMeetings = meetings.filterByStartDate(filterStart);
             assertArrayEquals(filteredMeetings.getMeetings().toArray(),  expectedMeetings);
         }
 
@@ -269,14 +269,14 @@ class MeetingsTest {
         void filterByEndDateReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting2};
             Date filterEnd = new Date(1760832000); //2025-10-18 24:00:00
-            Meetings filteredMeetings = meetings.filterByEndDate(filterEnd);
+            MeetingsService filteredMeetings = meetings.filterByEndDate(filterEnd);
             assertArrayEquals(filteredMeetings.getMeetings().toArray(),  expectedMeetings);
         }
 
         @Test
         void filterByAttendeesCountReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting1};
-            Meetings filteredMeetings = meetings.filterByAttendeesCount(2);
+            MeetingsService filteredMeetings = meetings.filterByAttendeesCount(2);
             assertArrayEquals(filteredMeetings.getMeetings().toArray(),  expectedMeetings);
         }
     }
