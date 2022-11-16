@@ -5,11 +5,19 @@ import com.example.Meetings_API.Models.*;
 import com.example.Meetings_API.Repository.MeetingsRepository;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 @Service
 public class MeetingsService {
 
@@ -18,6 +26,7 @@ public class MeetingsService {
     private List<Meeting> meetings ;
 
     public MeetingsService() {}
+    @Autowired
     public MeetingsService(MeetingsRepository repository) {
         this.repository = repository;
         this.meetings = this.repository.readMeetings();
@@ -33,17 +42,12 @@ public class MeetingsService {
             if(meeting.getId().equals(id))
                 return meeting;
         }
-        return null;
+        throw new NotFoundException("Meeting not foud");
     }
     public void removeMeeting(Meeting meeting)
     {
         meetings.remove(meeting);
         repository.writeMeetings(meetings);
-    }
-    public boolean isMeetingAvailable(String id) {
-        if (getMeeting(id) == null)
-            return false;
-        return true;
     }
     public List<Meeting> listOfMeetingsPersonIsIn(Person person) {
         List<Meeting> list = new ArrayList<>();
@@ -88,74 +92,58 @@ public class MeetingsService {
     public boolean dateRangesOverlap(Meeting meeting1, Meeting meeting2) {
         return (meeting1.getStartDate().before(meeting2.getEndDate()) && meeting1.getEndDate().after(meeting2.getStartDate()));
     }
-    public MeetingsService filterByCategory(String category)
-    {
-        MeetingsService filteredMeetings = new MeetingsService();
-        for (Meeting meeting: meetings) {
-            if (meeting.getCategory() == Category.valueOf(category)){
-                filteredMeetings.addMeeting(meeting);
-            }
-        }
-        return filteredMeetings;
+    public Predicate<Meeting> byCategory(String category) {
+        return meeting -> meeting.getCategory() == Category.valueOf(category);
     }
-    public MeetingsService filterByType(String type)
-    {
-        MeetingsService filteredMeetings = new MeetingsService();
-        for (Meeting meeting: meetings) {
-            if (meeting.getType() == Type.valueOf(type)){
-                filteredMeetings.addMeeting(meeting);
-            }
-        }
-        return filteredMeetings;
+    public Predicate<Meeting> byType(String type) {
+        return meeting -> meeting.getType() == Type.valueOf(type);
     }
-    public MeetingsService filterByDescription(String description) {
-        MeetingsService filteredMeetings = new MeetingsService();
-        for (Meeting meeting: meetings) {
-            if (meeting.getDescription().toLowerCase().contains(description.toLowerCase())){
-                filteredMeetings.addMeeting(meeting);
-            }
-        }
-        return filteredMeetings;
+    public Predicate<Meeting> byDescription(String description) {
+        return meeting -> meeting.getDescription().toLowerCase().contains(description.toLowerCase());
+    }
+    public Predicate<Meeting> byResponsiblePerson(String id) {
+        return meeting -> meeting.doesContainPersonAsAttendee(id);
+    }
+    public Predicate<Meeting> byStartDate(Date start) {
+        return meeting -> meeting.getStartDate().after(start);
+    }
+    public Predicate<Meeting> byEndDate(Date end) {
+        return meeting -> meeting.getEndDate().before(end);
+    }
+    public Predicate<Meeting> byAttendeesCount(int count) {
+        return meeting -> meeting.getAttendees().size() >= count;
+    }
+    public List<Meeting> getFilteredMeetings (Optional<String> start, Optional<String> end, Optional<String> description, Optional<String> responsiblePersonId, Optional<String> category, Optional<String> type, Optional<String> attendees)
+    {
+        Stream<Meeting> stream = meetings.stream();
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat formatterWithTime = new SimpleDateFormat("yyyy-MM-dd HH");
 
-    }
-    public MeetingsService filterByResponsiblePerson(String id)
-    {
-        MeetingsService filteredMeetings = new MeetingsService();
-        for (Meeting meeting: meetings) {
-            if (meeting.doesContainPersonAsAttendee(id)){
-                filteredMeetings.addMeeting(meeting);
+        if(description.isPresent())
+            stream = stream.filter(byDescription(description.get()));
+        if(responsiblePersonId.isPresent())
+            stream = stream.filter(byResponsiblePerson(responsiblePersonId.get()));
+        if(category.isPresent())
+            stream = stream.filter(byCategory(category.get()));
+        if(type.isPresent())
+            stream = stream.filter(byType(type.get()));
+        if(attendees.isPresent())
+            stream = stream.filter(byAttendeesCount(Integer.parseInt(attendees.get())));
+        if(start.isPresent())
+            try {
+                Date startDate = formatter.parse(start.get());
+                stream = stream.filter(byStartDate(startDate));
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
             }
-        }
-        return filteredMeetings;
-    }
-    public MeetingsService filterByStartDate (Date start)
-    {
-        MeetingsService filteredMeetings = new MeetingsService();
-        for (Meeting meeting: meetings) {
-            if (meeting.getStartDate().after(start)){
-                filteredMeetings.addMeeting(meeting);
+        if(end.isPresent())
+            try {
+                Date endDate = formatterWithTime.parse(end.get() + " 24"); // Adding 24 hours so it includes whole day
+                stream = stream.filter(byEndDate(endDate));
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
             }
-        }
-        return filteredMeetings;
-    }
-    public MeetingsService filterByEndDate (Date end)
-    {
-        MeetingsService filteredMeetings = new MeetingsService();
-        for (Meeting meeting: meetings) {
-            if (meeting.getEndDate().before(end)){
-                filteredMeetings.addMeeting(meeting);
-            }
-        }
-        return filteredMeetings;
-    }
-    public MeetingsService filterByAttendeesCount (int count)
-    {
-        MeetingsService filteredMeetings = new MeetingsService();
-        for (Meeting meeting: meetings) {
-            if (meeting.getAttendees().size() >= count){
-                filteredMeetings.addMeeting(meeting);
-            }
-        }
+        List<Meeting> filteredMeetings = stream.collect(Collectors.toList());
         return filteredMeetings;
     }
 }

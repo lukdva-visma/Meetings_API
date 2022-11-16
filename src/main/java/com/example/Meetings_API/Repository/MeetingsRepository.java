@@ -1,7 +1,6 @@
 package com.example.Meetings_API.Repository;
 
 import com.example.Meetings_API.Models.Meeting;
-import com.example.Meetings_API.Services.MeetingsService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Repository;
@@ -23,7 +22,6 @@ public class MeetingsRepository {
     public List<Meeting> readMeetings() {
         try {
             return mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {});
-//            meetings.setMeetings(mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {}));
         } catch (IOException e) {
             e.printStackTrace();
             return new ArrayList<Meeting>();
