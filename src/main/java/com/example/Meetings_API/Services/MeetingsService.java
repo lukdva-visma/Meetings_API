@@ -1,8 +1,8 @@
 package com.example.Meetings_API.Services;
-import com.example.Meetings_API.Models.Category;
-import com.example.Meetings_API.Models.Meeting;
-import com.example.Meetings_API.Models.Person;
-import com.example.Meetings_API.Models.Type;
+import com.example.Meetings_API.Exceptions.BadRequestException;
+import com.example.Meetings_API.Exceptions.NotFoundException;
+import com.example.Meetings_API.Models.*;
+import com.example.Meetings_API.Repository.MeetingsRepository;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Service;
@@ -12,12 +12,19 @@ import java.util.Date;
 import java.util.List;
 @Service
 public class MeetingsService {
+
+    private MeetingsRepository repository;
     @Getter @Setter
-    private List<Meeting> meetings = new ArrayList<>();
+    private List<Meeting> meetings ;
 
     public MeetingsService() {}
+    public MeetingsService(MeetingsRepository repository) {
+        this.repository = repository;
+        this.meetings = this.repository.readMeetings();
+    }
     public void addMeeting(Meeting meeting) {
         meetings.add(meeting);
+        repository.writeMeetings(meetings);
     }
     public Meeting getMeeting(String id)
     {
@@ -31,6 +38,7 @@ public class MeetingsService {
     public void removeMeeting(Meeting meeting)
     {
         meetings.remove(meeting);
+        repository.writeMeetings(meetings);
     }
     public boolean isMeetingAvailable(String id) {
         if (getMeeting(id) == null)
@@ -53,6 +61,29 @@ public class MeetingsService {
         }
         return false;
 
+    }
+    public Meeting addAttendeeToMeeting(Meeting meeting, Person person) {
+        if(meeting.doesContainPersonAsAttendee(person.getId()))
+            throw new BadRequestException("Person already added to meeting");
+        if (personHasConflictingMeetings(person, meeting))
+            throw  new BadRequestException("Person has conflicting meetings");
+        meeting.addAttendee(person);
+        return meeting;
+    }
+    public Meeting removeAttendeeFromMeeting(Meeting meeting, String attendeeId){
+        if (!meeting.isAttendeeAvailable(attendeeId))
+            throw new NotFoundException("Attendee not found");
+        Attendee attendee = meeting.getAttendee(attendeeId);
+        if(attendee.getPerson().getId().equals(meeting.getResponsiblePerson().getId()))
+            throw new BadRequestException("Cannot remove responsible person from meeting");
+        meeting.removeAttendee(attendee);
+        return meeting;
+    }
+    public void updateMeeting(Meeting meeting)
+    {
+        int index = meetings.indexOf(meeting);
+        meetings.set(index, meeting);
+        repository.writeMeetings(meetings);
     }
     public boolean dateRangesOverlap(Meeting meeting1, Meeting meeting2) {
         return (meeting1.getStartDate().before(meeting2.getEndDate()) && meeting1.getEndDate().after(meeting2.getStartDate()));

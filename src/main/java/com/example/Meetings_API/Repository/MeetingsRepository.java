@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 @Repository
 public class MeetingsRepository {
@@ -16,22 +17,21 @@ public class MeetingsRepository {
     private final ObjectMapper mapper = new ObjectMapper();
     private final File file = new File("meetings.json");
 
-    private MeetingsService meetings;
-
-    public MeetingsRepository(MeetingsService meetings) {
-        this.meetings = meetings;
+    public MeetingsRepository() {
     }
 
-    public void readMeetings() {
+    public List<Meeting> readMeetings() {
         try {
-            meetings.setMeetings(mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {}));
+            return mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {});
+//            meetings.setMeetings(mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {}));
         } catch (IOException e) {
             e.printStackTrace();
+            return new ArrayList<Meeting>();
         }
     }
-    public void writeMeetings() {
+    public void writeMeetings(List<Meeting> meetings) {
         try {
-            mapper.writeValue(file, meetings.getMeetings());
+            mapper.writeValue(file, meetings);
         } catch (IOException e) {
             e.printStackTrace();
         }

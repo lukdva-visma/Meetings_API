@@ -25,7 +25,7 @@ public class MeetingController {
 
 
     MeetingsService meetings = new MeetingsService();
-    MeetingsRepository meetingsRepository = new MeetingsRepository(meetings);
+    MeetingsRepository meetingsRepository = new MeetingsRepository();
     JwtUtils jwtUtils = new JwtUtils();
     @ModelAttribute
     public void readFile() {
@@ -33,9 +33,8 @@ public class MeetingController {
     }
     @PostMapping("/meetings")
     public Meeting createMeeting(@RequestBody Meeting meeting) {
+        meetings.addAttendeeToMeeting(meeting, meeting.getResponsiblePerson());
         meetings.addMeeting(meeting);
-        addAttendee(meeting.getId(), meeting.getResponsiblePerson());
-        meetingsRepository.writeMeetings();
         return meeting;
     }
 
@@ -50,7 +49,6 @@ public class MeetingController {
         if(meeting.getResponsiblePerson().getId().equals(personId))
         {
             meetings.removeMeeting(meeting);
-            meetingsRepository.writeMeetings();
             return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
         }
         throw new UnauthorizedException();
@@ -61,12 +59,9 @@ public class MeetingController {
         if (!meetings.isMeetingAvailable(id))
             throw new NotFoundException();
         Meeting meeting = meetings.getMeeting(id);
-        if(meeting.doesContainPersonAsAttendee(person.getId()))
-            throw new BadRequestException("Person already added to meeting");
-        if (meetings.personHasConflictingMeetings(person, meeting))
-            throw  new BadRequestException("Person has conflicting meetings");
-        meeting.addAttendee(person);
-        meetingsRepository.writeMeetings();
+        Meeting updatedMeeting = meetings.addAttendeeToMeeting(meeting, person);
+        meetings.updateMeeting(updatedMeeting);
+        //Check if works correctly
         return meeting;
     }
 
@@ -75,13 +70,8 @@ public class MeetingController {
         if (!meetings.isMeetingAvailable(meetingId))
             throw new NotFoundException("Meeting not found");
         Meeting meeting = meetings.getMeeting(meetingId);
-        if (!meeting.isAttendeeAvailable(attendeeId))
-            throw new NotFoundException("Attendee not found");
-        Attendee attendee = meeting.getAttendee(attendeeId);
-        if(attendee.getPerson().getId().equals(meeting.getResponsiblePerson().getId()))
-            throw new BadRequestException("Cannot remove responsible person from meeting");
-        meeting.removeAttendee(attendee);
-        meetingsRepository.writeMeetings();
+        Meeting updatedMeeting = meetings.removeAttendeeFromMeeting(meeting, attendeeId);
+        meetings.updateMeeting(updatedMeeting);
         return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
     }
 
