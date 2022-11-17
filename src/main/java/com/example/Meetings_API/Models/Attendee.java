@@ -3,7 +3,7 @@ package com.example.Meetings_API.Models;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class Attendee {
@@ -12,12 +12,12 @@ public class Attendee {
     @Getter @Setter
     private Person person;
     @Getter @Setter
-    private Date added;
+    private LocalDateTime added;
 
     public Attendee() {}
     public Attendee(Person person) {
         id = UUID.randomUUID().toString();
-        added = new Date();
+        added = LocalDateTime.now();
         this.person = person;
     }
 }

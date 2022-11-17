@@ -3,34 +3,27 @@ package com.example.Meetings_API.Models;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
+@Getter @Setter
 public class Meeting {
-    @Getter @Setter
     private String id;
-    @Getter @Setter
     private String name;
-    @Getter @Setter
     private Person responsiblePerson;
-    @Getter @Setter
     private String description;
-    @Getter @Setter
     private Category category;
-    @Getter @Setter
     private Type type;
-    @Getter @Setter
-    private Date startDate;
-    @Getter @Setter
-    private Date endDate;
-    @Getter @Setter
-    private ArrayList<Attendee> attendees = new ArrayList<>();
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
+    private List<Attendee> attendees = new ArrayList<>();
 
     public Meeting() {
         this.id = UUID.randomUUID().toString();
     }
-    public Meeting(String name, Person responsiblePerson, String description, Category category, Type type, Date startDate, Date endDate) {
+    public Meeting(String name, Person responsiblePerson, String description, Category category, Type type, LocalDateTime startDate, LocalDateTime endDate) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
         this.responsiblePerson = responsiblePerson;
@@ -67,8 +60,6 @@ public class Meeting {
    }
    public boolean isAttendeeAvailable(String id)
    {
-       if(getAttendee(id) == null)
-           return false;
-       return true;
+       return getAttendee(id) == null;
    }
 }

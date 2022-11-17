@@ -13,10 +13,11 @@ import java.util.List;
 @Repository
 public class MeetingsRepository {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
     private final File file = new File("meetings.json");
 
-    public MeetingsRepository() {
+    public MeetingsRepository(ObjectMapper objectMapper) {
+        this.mapper = objectMapper;
     }
 
     public List<Meeting> readMeetings() {
@@ -24,7 +25,7 @@ public class MeetingsRepository {
             return mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {});
         } catch (IOException e) {
             e.printStackTrace();
-            return new ArrayList<Meeting>();
+            return new ArrayList<>();
         }
     }
     public void writeMeetings(List<Meeting> meetings) {

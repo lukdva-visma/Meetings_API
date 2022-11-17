@@ -2,6 +2,7 @@ package com.example.Meetings_API.Controllers;
 
 import com.example.Meetings_API.Exceptions.UnauthorizedException;
 import com.example.Meetings_API.Models.Meeting;
+import com.example.Meetings_API.Models.MeetingsFilters;
 import com.example.Meetings_API.Services.MeetingsService;
 import com.example.Meetings_API.Models.Person;
 import com.example.Meetings_API.Utils.JwtUtils;
@@ -9,22 +10,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
-import java.util.Optional;
+
 
 @RestController
 public class MeetingController {
     @Autowired
     MeetingsService meetingsService;
     JwtUtils jwtUtils = new JwtUtils();
+
     @PostMapping("/meetings")
     public Meeting createMeeting(@RequestBody Meeting meeting) {
         meetingsService.addAttendeeToMeeting(meeting, meeting.getResponsiblePerson());
         meetingsService.addMeeting(meeting);
         return meeting;
     }
-
     @DeleteMapping("/meetings/{id}")
     public ResponseEntity deleteMeeting(@RequestHeader (name="Authorization") String token, @PathVariable String id)
     {
@@ -43,7 +43,6 @@ public class MeetingController {
         Meeting meeting = meetingsService.getMeeting(id);
         Meeting updatedMeeting = meetingsService.addAttendeeToMeeting(meeting, person);
         meetingsService.updateMeeting(updatedMeeting);
-        //Check if works correctly
         return meeting;
     }
 
@@ -56,7 +55,7 @@ public class MeetingController {
     }
 
     @GetMapping("/meetings")
-    public List<Meeting> getMeetings(@RequestParam Optional<String> start, @RequestParam Optional<String> end, @RequestParam Optional<String> description, @RequestParam Optional<String> responsiblePersonId, @RequestParam Optional<String> category, @RequestParam Optional<String> type, @RequestParam Optional<String> attendees) {
-        return meetingsService.getFilteredMeetings(start,end, description, responsiblePersonId, category, type, attendees);
+    public List<Meeting> getMeetings(MeetingsFilters filters) {
+        return meetingsService.getFilteredMeetings(filters);
     }
 }

@@ -3,17 +3,12 @@ import com.example.Meetings_API.Exceptions.BadRequestException;
 import com.example.Meetings_API.Exceptions.NotFoundException;
 import com.example.Meetings_API.Models.*;
 import com.example.Meetings_API.Repository.MeetingsRepository;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,10 +17,7 @@ import java.util.stream.Stream;
 public class MeetingsService {
 
     private MeetingsRepository repository;
-    @Getter @Setter
     private List<Meeting> meetings ;
-
-    public MeetingsService() {}
     @Autowired
     public MeetingsService(MeetingsRepository repository) {
         this.repository = repository;
@@ -90,59 +82,48 @@ public class MeetingsService {
         repository.writeMeetings(meetings);
     }
     public boolean dateRangesOverlap(Meeting meeting1, Meeting meeting2) {
-        return (meeting1.getStartDate().before(meeting2.getEndDate()) && meeting1.getEndDate().after(meeting2.getStartDate()));
+        return (meeting1.getStartDate().isBefore(meeting2.getEndDate()) && meeting1.getEndDate().isAfter(meeting2.getStartDate()));
     }
-    public Predicate<Meeting> byCategory(String category) {
+    private Predicate<Meeting> byCategory(String category) {
         return meeting -> meeting.getCategory() == Category.valueOf(category);
     }
-    public Predicate<Meeting> byType(String type) {
+    private Predicate<Meeting> byType(String type) {
         return meeting -> meeting.getType() == Type.valueOf(type);
     }
-    public Predicate<Meeting> byDescription(String description) {
+    private Predicate<Meeting> byDescription(String description) {
         return meeting -> meeting.getDescription().toLowerCase().contains(description.toLowerCase());
     }
-    public Predicate<Meeting> byResponsiblePerson(String id) {
+    private Predicate<Meeting> byResponsiblePerson(String id) {
         return meeting -> meeting.doesContainPersonAsAttendee(id);
     }
-    public Predicate<Meeting> byStartDate(Date start) {
-        return meeting -> meeting.getStartDate().after(start);
+    private Predicate<Meeting> byStartDate(LocalDateTime start) {
+        return meeting -> meeting.getStartDate().isAfter(start);
     }
-    public Predicate<Meeting> byEndDate(Date end) {
-        return meeting -> meeting.getEndDate().before(end);
+    private Predicate<Meeting> byEndDate(LocalDateTime end) {
+        return meeting -> meeting.getEndDate().isBefore(end);
     }
-    public Predicate<Meeting> byAttendeesCount(int count) {
+    private Predicate<Meeting> byAttendeesCount(int count) {
         return meeting -> meeting.getAttendees().size() >= count;
     }
-    public List<Meeting> getFilteredMeetings (Optional<String> start, Optional<String> end, Optional<String> description, Optional<String> responsiblePersonId, Optional<String> category, Optional<String> type, Optional<String> attendees)
+    public List<Meeting> getFilteredMeetings (MeetingsFilters filters)
     {
         Stream<Meeting> stream = meetings.stream();
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-        SimpleDateFormat formatterWithTime = new SimpleDateFormat("yyyy-MM-dd HH");
 
-        if(description.isPresent())
-            stream = stream.filter(byDescription(description.get()));
-        if(responsiblePersonId.isPresent())
-            stream = stream.filter(byResponsiblePerson(responsiblePersonId.get()));
-        if(category.isPresent())
-            stream = stream.filter(byCategory(category.get()));
-        if(type.isPresent())
-            stream = stream.filter(byType(type.get()));
-        if(attendees.isPresent())
-            stream = stream.filter(byAttendeesCount(Integer.parseInt(attendees.get())));
-        if(start.isPresent())
-            try {
-                Date startDate = formatter.parse(start.get());
-                stream = stream.filter(byStartDate(startDate));
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
-            }
-        if(end.isPresent())
-            try {
-                Date endDate = formatterWithTime.parse(end.get() + " 24"); // Adding 24 hours so it includes whole day
-                stream = stream.filter(byEndDate(endDate));
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
-            }
+        if(filters.getDescription() != null)
+            stream = stream.filter(byDescription(filters.getDescription()));
+        if(filters.getResponsiblePersonId() != null)
+            stream = stream.filter(byResponsiblePerson(filters.getResponsiblePersonId()));
+        if(filters.getCategory() != null)
+            stream = stream.filter(byCategory(filters.getCategory()));
+        if(filters.getType() != null)
+            stream = stream.filter(byType(filters.getType()));
+        if(filters.getAttendees() != null)
+            stream = stream.filter(byAttendeesCount(filters.getAttendees()));
+        if(filters.getStart() != null)
+                stream = stream.filter(byStartDate(filters.getStart().atStartOfDay()));
+        if(filters.getEnd() != null)
+                stream = stream.filter(byEndDate(filters.getEnd().plusDays(1).atStartOfDay()));
+
         List<Meeting> filteredMeetings = stream.collect(Collectors.toList());
         return filteredMeetings;
     }
