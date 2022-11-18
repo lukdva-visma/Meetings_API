@@ -4,11 +4,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Date;
-
+@Getter @Setter
 public class ApiError {
-    @Getter @Setter
     private String errorMessage;
-    @Getter @Setter
     private Date timeStamp;
 
     public ApiError() {

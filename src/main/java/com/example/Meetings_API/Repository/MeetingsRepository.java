@@ -14,7 +14,7 @@ import java.util.List;
 public class MeetingsRepository {
 
     private final ObjectMapper mapper;
-    private final File file = new File("meetings.json");
+    private final File file = new File("src/main/resources/meetings.json");
 
     public MeetingsRepository(ObjectMapper objectMapper) {
         this.mapper = objectMapper;
@@ -22,6 +22,10 @@ public class MeetingsRepository {
 
     public List<Meeting> readMeetings() {
         try {
+            if(!file.exists()) {
+                file.createNewFile();
+                mapper.writeValue(file, new ArrayList<>());
+            }
             return mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {});
         } catch (IOException e) {
             e.printStackTrace();

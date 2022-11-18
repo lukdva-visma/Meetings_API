@@ -1,13 +1,15 @@
 package com.example.Meetings_API.Utils;
 
 import com.example.Meetings_API.Exceptions.UnauthorizedException;
-import io.github.cdimascio.dotenv.Dotenv;
 import io.jsonwebtoken.Claims; import io.jsonwebtoken.Jwts;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+@Component
 public class JwtUtils {
 
-    Dotenv dotenv = Dotenv.load();
-    private String jwtSecret  = dotenv.get("SECRET");
+    @Value("${SECRET}")
+    private String jwtSecret;
 
     private String extractToken( String bearer){
         String token = "";

@@ -17,7 +17,8 @@ import java.util.List;
 public class MeetingController {
     @Autowired
     MeetingsService meetingsService;
-    JwtUtils jwtUtils = new JwtUtils();
+    @Autowired
+    JwtUtils jwtUtils;
 
     @PostMapping("/meetings")
     public Meeting createMeeting(@RequestBody Meeting meeting) {

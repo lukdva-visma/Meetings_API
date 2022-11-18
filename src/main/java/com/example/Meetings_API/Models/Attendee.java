@@ -5,13 +5,10 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
+@Getter @Setter
 public class Attendee {
-    @Getter @Setter
     private String id;
-    @Getter @Setter
     private Person person;
-    @Getter @Setter
     private LocalDateTime added;
 
     public Attendee() {}
