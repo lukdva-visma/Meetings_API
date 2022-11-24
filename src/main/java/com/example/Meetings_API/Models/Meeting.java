@@ -60,6 +60,6 @@ public class Meeting {
    }
    public boolean isAttendeeAvailable(String id)
    {
-       return getAttendee(id) == null;
+       return getAttendee(id) != null;
    }
 }

@@ -5,8 +5,6 @@ import com.example.Meetings_API.Exceptions.UnauthorizedException;
 import com.example.Meetings_API.Models.*;
 import com.example.Meetings_API.Repository.MeetingsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -39,7 +37,7 @@ public class MeetingsService {
             if(meeting.getId().equals(id))
                 return meeting;
         }
-        throw new NotFoundException("Meeting not foud");
+        throw new NotFoundException("Meeting not found");
     }
     public void removeMeeting(Meeting meeting)
     {

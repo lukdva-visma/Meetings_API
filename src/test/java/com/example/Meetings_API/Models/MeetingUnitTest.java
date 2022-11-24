@@ -7,7 +7,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class MeetingTest {
+class MeetingUnitTest {
 
     @Test
     void doesContainPersonAsAttendee() {

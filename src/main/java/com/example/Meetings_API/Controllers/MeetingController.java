@@ -2,16 +2,13 @@ package com.example.Meetings_API.Controllers;
 
 import com.example.Meetings_API.Assemblers.MeetingAssembler;
 import com.example.Meetings_API.Assemblers.PersonAssembler;
-import com.example.Meetings_API.Exceptions.UnauthorizedException;
 import com.example.Meetings_API.Models.*;
 import com.example.Meetings_API.Services.MeetingsService;
 import com.example.Meetings_API.Utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-
 
 @RestController
 public class MeetingController {
