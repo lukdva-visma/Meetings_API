@@ -1,14 +1,13 @@
 package com.example.Meetings_API.Assemblers;
 
+import com.example.Meetings_API.DTOs.MeetingDTO;
 import com.example.Meetings_API.Models.*;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 @Component
 public class MeetingAssembler {
-    public Meeting mapMeeting(MeetingDTO meetingDto)
-    {
-        Meeting meeting  = new Meeting();
+    public Meeting mapMeeting(MeetingDTO meetingDto) {
+        Meeting meeting = new Meeting();
         meeting.setName(meetingDto.getName());
         meeting.setResponsiblePerson(meetingDto.getResponsiblePerson());
         meeting.setDescription(meetingDto.getDescription());

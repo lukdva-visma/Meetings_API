@@ -17,6 +17,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class MeetingServiceUnitTest {
 
@@ -26,10 +27,11 @@ class MeetingServiceUnitTest {
     MeetingsRepository repository;
     @InjectMocks
     MeetingsService meetingsService;
+
     @BeforeEach
     public void createMeeting() {
-        LocalDateTime start = LocalDateTime.of(2025, 10, 17,10, 0); //2025-10-17 10:00:00
-        LocalDateTime end = LocalDateTime.of(2025, 10, 17,11, 0); //2025-10-17 11:00:00
+        LocalDateTime start = LocalDateTime.of(2025, 10, 17, 10, 0); //2025-10-17 10:00:00
+        LocalDateTime end = LocalDateTime.of(2025, 10, 17, 11, 0); //2025-10-17 11:00:00
         String name = "Test team meeting";
         String description = "This is a meeting of test team";
         Category category = Category.Hub;
@@ -46,6 +48,7 @@ class MeetingServiceUnitTest {
         assertArrayEquals(meetingsService.getFilteredMeetings(new MeetingsFilters()).toArray(), expectedMeetingsList);
         verify(repository).writeMeetings(Arrays.asList(expectedMeetingsList));
     }
+
     @Test
     @DisplayName("getMeeting returns existing meeting")
     void getExistingMeetingReturnsAddedMeeting() {
@@ -57,7 +60,7 @@ class MeetingServiceUnitTest {
     @Test
     @DisplayName("getMeeting returns null for non existing meeting")
     void tryGettingMeetingNotInTheList() {
-        Exception exception = assertThrows(NotFoundException.class,() -> meetingsService.getMeeting(meeting.getId()));
+        Exception exception = assertThrows(NotFoundException.class, () -> meetingsService.getMeeting(meeting.getId()));
         String expectedMessage = "Meeting not found";
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
@@ -75,13 +78,14 @@ class MeetingServiceUnitTest {
 
     @Test
     void listOfMeetingsPersonIsInWhenPersonHasNoMeetings() {
-        Meeting[] emptyArray= {};
+        Meeting[] emptyArray = {};
         meeting.addAttendee(responsiblePerson);
         meetingsService.addMeeting(meeting);
         Person attendee = new Person("id2", "John Smith");
         List<Meeting> listOfMeetings = meetingsService.listOfMeetingsPersonIsIn(attendee);
         assertArrayEquals(listOfMeetings.toArray(), emptyArray);
     }
+
     @Test
     void listOfMeetingsPersonIsInWhenPersonAttendsOneOfTheMeetings() {
         LocalDateTime date = LocalDateTime.now();
@@ -93,7 +97,7 @@ class MeetingServiceUnitTest {
         Person attendee = new Person("id2", "John Smith");
         meetingPersonIsIn.addAttendee(attendee);
 
-        Meeting[] meetingArray= {meetingPersonIsIn};
+        Meeting[] meetingArray = {meetingPersonIsIn};
         meeting.addAttendee(responsiblePerson);
         meetingsService.addMeeting(meeting);
         meetingsService.addMeeting(meetingPersonIsIn);
@@ -101,10 +105,11 @@ class MeetingServiceUnitTest {
         List<Meeting> listOfMeetings = meetingsService.listOfMeetingsPersonIsIn(attendee);
         assertArrayEquals(listOfMeetings.toArray(), meetingArray);
     }
+
     @Test
     void personHasConflictingMeetingsReturnsTrue() {
         LocalDateTime start = LocalDateTime.of(2025, 10, 17, 10, 30, 0); //2025-10-17 10:30:00
-        LocalDateTime end = LocalDateTime.of(2025, 10, 17, 11, 0 ,0); //2025-10-17 11:00:00
+        LocalDateTime end = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
         String name = "I Overlap";
         String description = "This definitely overlaps";
         Category category = Category.Short;
@@ -117,6 +122,7 @@ class MeetingServiceUnitTest {
         meetingsService.addMeeting(overlappingMeeting);
         assertTrue(meetingsService.personHasConflictingMeetings(personWithConflictingMeetings, overlappingMeeting));
     }
+
     @Test
     void personHasConflictingMeetingsReturnsFalse() {
         LocalDateTime start = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
@@ -133,49 +139,52 @@ class MeetingServiceUnitTest {
         meetingsService.addMeeting(nonOverlappingMeeting);
         assertFalse(meetingsService.personHasConflictingMeetings(personWithoutConflictingMeetings, nonOverlappingMeeting));
     }
+
     @Test
     void dateRangesOverlapReturnTrue() {
         LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 0, 0); //2025-10-17 10:00:00
         LocalDateTime end1 = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
-        Meeting meeting1 =  new Meeting();
+        Meeting meeting1 = new Meeting();
         meeting1.setStartDate(start1);
         meeting1.setEndDate(end1);
 
         LocalDateTime start2 = LocalDateTime.of(2025, 10, 17, 10, 30, 0); //2025-10-17 10:30:00
         LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 12, 0, 0); //2025-10-17 12:00:00
-        Meeting meeting2 =  new Meeting();
+        Meeting meeting2 = new Meeting();
         meeting2.setStartDate(start2);
         meeting2.setEndDate(end2);
 
         assertTrue(meetingsService.dateRangesOverlap(meeting1, meeting2));
     }
+
     @Test
     void dateRangesOverlapReturnFalse() {
         LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 0, 0);  //2025-10-17 10:00:00
         LocalDateTime end1 = LocalDateTime.of(2025, 10, 17, 11, 0, 0);  //2025-10-17 11:00:00
-        Meeting meeting1 =  new Meeting();
+        Meeting meeting1 = new Meeting();
         meeting1.setStartDate(start1);
         meeting1.setEndDate(end1);
 
         LocalDateTime start2 = LocalDateTime.of(2025, 10, 17, 11, 30, 0);  //2025-10-17 11:30:00
         LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 12, 0, 0);  //2025-10-17 12:00:00
-        Meeting meeting2 =  new Meeting();
+        Meeting meeting2 = new Meeting();
         meeting2.setStartDate(start2);
         meeting2.setEndDate(end2);
 
         assertFalse(meetingsService.dateRangesOverlap(meeting1, meeting2));
     }
+
     @Test
     void dateRangesOverlapReturnFalseWhenBoundariesTouch() {
         LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 0, 0); //2025-10-17 10:00:00
         LocalDateTime end1 = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
-        Meeting meeting1 =  new Meeting();
+        Meeting meeting1 = new Meeting();
         meeting1.setStartDate(start1);
         meeting1.setEndDate(end1);
 
         LocalDateTime start2 = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
         LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 12, 0, 0); //2025-10-17 12:00:00
-        Meeting meeting2 =  new Meeting();
+        Meeting meeting2 = new Meeting();
         meeting2.setStartDate(start2);
         meeting2.setEndDate(end2);
 
@@ -193,6 +202,7 @@ class MeetingServiceUnitTest {
         MeetingsService meetingsService;
         Meeting meeting1;
         Meeting meeting2;
+
         @BeforeAll
         public void createMeeting() {
             LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 0, 0); //2025-10-17 10:00:00
@@ -222,21 +232,23 @@ class MeetingServiceUnitTest {
             meetingsService.addMeeting(meeting1);
             meetingsService.addMeeting(meeting2);
         }
+
         @Test
         void filterByCategoryReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting2};
             MeetingsFilters filters = new MeetingsFilters();
             filters.setCategory("TeamBuilding");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(),  expectedMeetings);
+            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
         }
+
         @Test
         void filterByCategoryReturnsNoMeetings() {
             Meeting[] expectedMeetings = {};
             MeetingsFilters filters = new MeetingsFilters();
             filters.setCategory("CodeMonkey");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(),  expectedMeetings);
+            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
         }
 
         @Test
@@ -245,7 +257,7 @@ class MeetingServiceUnitTest {
             MeetingsFilters filters = new MeetingsFilters();
             filters.setType("Live");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(),  expectedMeetings);
+            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
         }
 
         @Test
@@ -254,7 +266,7 @@ class MeetingServiceUnitTest {
             MeetingsFilters filters = new MeetingsFilters();
             filters.setDescription("java");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(),  expectedMeetings);
+            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
         }
 
         @Test
@@ -263,7 +275,7 @@ class MeetingServiceUnitTest {
             MeetingsFilters filters = new MeetingsFilters();
             filters.setResponsiblePersonId("ID1");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(),  expectedMeetings);
+            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
         }
 
         @Test
@@ -273,7 +285,7 @@ class MeetingServiceUnitTest {
             MeetingsFilters filters = new MeetingsFilters();
             filters.setStart(filterStart);
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(),  expectedMeetings);
+            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
         }
 
         @Test
@@ -283,7 +295,7 @@ class MeetingServiceUnitTest {
             MeetingsFilters filters = new MeetingsFilters();
             filters.setEnd(filterEnd);
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(),  expectedMeetings);
+            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
         }
 
         @Test
@@ -292,7 +304,7 @@ class MeetingServiceUnitTest {
             MeetingsFilters filters = new MeetingsFilters();
             filters.setAttendees(2);
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(),  expectedMeetings);
+            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
         }
     }
 }

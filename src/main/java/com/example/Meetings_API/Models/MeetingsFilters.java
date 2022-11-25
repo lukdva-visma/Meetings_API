@@ -5,7 +5,8 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 
-@Getter @Setter
+@Getter
+@Setter
 public class MeetingsFilters {
     private LocalDate start;
     private LocalDate end;
@@ -15,5 +16,6 @@ public class MeetingsFilters {
     private String type;
     private Integer attendees;
 
-    public MeetingsFilters() {}
+    public MeetingsFilters() {
+    }
 }

@@ -1,7 +1,7 @@
 package com.example.Meetings_API.Assemblers;
 
 import com.example.Meetings_API.Models.Person;
-import com.example.Meetings_API.Models.PersonDTO;
+import com.example.Meetings_API.DTOs.PersonDTO;
 import org.springframework.stereotype.Component;
 
 @Component

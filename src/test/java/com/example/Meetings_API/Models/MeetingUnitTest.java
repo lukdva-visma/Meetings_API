@@ -23,6 +23,7 @@ class MeetingUnitTest {
         meeting.addAttendee(attendee);
         assertTrue(meeting.doesContainPersonAsAttendee(attendee.getId()));
     }
+
     @Test
     void doesNotContainPersonAsAttendee() {
         LocalDateTime date = LocalDateTime.now();

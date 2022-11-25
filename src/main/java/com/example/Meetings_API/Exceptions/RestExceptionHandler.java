@@ -14,18 +14,21 @@ public class RestExceptionHandler {
         error.setErrorMessage(e.getMessage());
         return new ResponseEntity<ApiError>(error, HttpStatus.NOT_FOUND);
     }
+
     @ExceptionHandler(value = UnauthorizedException.class)
     public ResponseEntity<ApiError> handleNotFoundException(UnauthorizedException e) {
         ApiError error = new ApiError();
         error.setErrorMessage(e.getMessage());
         return new ResponseEntity<ApiError>(error, HttpStatus.UNAUTHORIZED);
     }
+
     @ExceptionHandler(value = BadRequestException.class)
     public ResponseEntity<ApiError> handleBadRequestException(BadRequestException e) {
         ApiError error = new ApiError();
         error.setErrorMessage(e.getMessage());
         return new ResponseEntity<ApiError>(error, HttpStatus.BAD_REQUEST);
     }
+
     @ExceptionHandler(value = RuntimeException.class)
     public ResponseEntity<NotFoundException> handleException(NotFoundException e) {
         ApiError error = new ApiError();

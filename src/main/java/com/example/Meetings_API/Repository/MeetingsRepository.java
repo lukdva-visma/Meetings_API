@@ -27,16 +27,18 @@ public class MeetingsRepository {
 
     public List<Meeting> readMeetings() {
         try {
-            if(!file.exists()) {
+            if (!file.exists()) {
                 file.createNewFile();
                 mapper.writeValue(file, new ArrayList<>());
             }
-            return mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {});
+            return mapper.readValue(file, new TypeReference<ArrayList<Meeting>>() {
+            });
         } catch (IOException e) {
             e.printStackTrace();
             return new ArrayList<>();
         }
     }
+
     public void writeMeetings(List<Meeting> meetings) {
         try {
             mapper.writeValue(file, meetings);
