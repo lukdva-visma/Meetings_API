@@ -1,12 +1,10 @@
 package com.example.Meetings_API.Assemblers;
 
-import com.example.Meetings_API.Models.Person;
 import com.example.Meetings_API.DTOs.PersonDTO;
-import org.springframework.stereotype.Component;
+import com.example.Meetings_API.Models.Person;
 
-@Component
 public class PersonAssembler {
-    public Person mapPerson(PersonDTO personDto) {
+    public static Person mapPerson(PersonDTO personDto) {
         Person person = new Person(personDto.getId(), personDto.getName());
         return person;
     }

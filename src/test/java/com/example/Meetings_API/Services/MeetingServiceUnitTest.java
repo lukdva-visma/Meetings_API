@@ -12,7 +12,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,10 +42,9 @@ class MeetingServiceUnitTest {
     @Test
     @DisplayName("Add meeting method adds meeting to list and calls repository with updated list")
     void verifyAddMeetingMethodAddsMeetingAndCallsRepositoryWithUpdated() {
-        Meeting[] expectedMeetingsList = {meeting};
+        List<Meeting> expectedMeetingsList = List.of(meeting);
         meetingsService.addMeeting(meeting);
-        assertArrayEquals(meetingsService.getFilteredMeetings(new MeetingsFilters()).toArray(), expectedMeetingsList);
-        verify(repository).writeMeetings(Arrays.asList(expectedMeetingsList));
+        verify(repository).writeMeetings(expectedMeetingsList);
     }
 
     @Test
@@ -72,7 +70,7 @@ class MeetingServiceUnitTest {
         reset(repository); // test does not care calls to mock before this statement as it is a setup
 
         meetingsService.removeMeeting(meeting);
-        assertEquals(meetingsService.getFilteredMeetings(new MeetingsFilters()).size(), 0);
+        assertEquals(meetingsService.getFilteredMeetings(new MeetingFilter()).size(), 0);
         Mockito.verify(repository).writeMeetings(new ArrayList<>());
     }
 
@@ -236,7 +234,7 @@ class MeetingServiceUnitTest {
         @Test
         void filterByCategoryReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting2};
-            MeetingsFilters filters = new MeetingsFilters();
+            MeetingFilter filters = new MeetingFilter();
             filters.setCategory("TeamBuilding");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
             assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
@@ -245,7 +243,7 @@ class MeetingServiceUnitTest {
         @Test
         void filterByCategoryReturnsNoMeetings() {
             Meeting[] expectedMeetings = {};
-            MeetingsFilters filters = new MeetingsFilters();
+            MeetingFilter filters = new MeetingFilter();
             filters.setCategory("CodeMonkey");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
             assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
@@ -254,7 +252,7 @@ class MeetingServiceUnitTest {
         @Test
         void filterByTypeReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting1};
-            MeetingsFilters filters = new MeetingsFilters();
+            MeetingFilter filters = new MeetingFilter();
             filters.setType("Live");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
             assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
@@ -263,7 +261,7 @@ class MeetingServiceUnitTest {
         @Test
         void filterByDescriptionReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting2};
-            MeetingsFilters filters = new MeetingsFilters();
+            MeetingFilter filters = new MeetingFilter();
             filters.setDescription("java");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
             assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
@@ -272,7 +270,7 @@ class MeetingServiceUnitTest {
         @Test
         void filterByResponsiblePersonReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting1};
-            MeetingsFilters filters = new MeetingsFilters();
+            MeetingFilter filters = new MeetingFilter();
             filters.setResponsiblePersonId("ID1");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
             assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
@@ -282,7 +280,7 @@ class MeetingServiceUnitTest {
         void filterByStartDateReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting2};
             LocalDate filterStart = LocalDate.of(2025, 10, 18); //2025-10-18
-            MeetingsFilters filters = new MeetingsFilters();
+            MeetingFilter filters = new MeetingFilter();
             filters.setStart(filterStart);
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
             assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
@@ -292,7 +290,7 @@ class MeetingServiceUnitTest {
         void filterByEndDateReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting2};
             LocalDate filterEnd = LocalDate.of(2025, 10, 18); //2025-10-18
-            MeetingsFilters filters = new MeetingsFilters();
+            MeetingFilter filters = new MeetingFilter();
             filters.setEnd(filterEnd);
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
             assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
@@ -301,10 +299,19 @@ class MeetingServiceUnitTest {
         @Test
         void filterByAttendeesCountReturnsMeeting() {
             Meeting[] expectedMeetings = {meeting1};
-            MeetingsFilters filters = new MeetingsFilters();
+            MeetingFilter filters = new MeetingFilter();
             filters.setAttendees(2);
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
             assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
         }
+
+        @Test
+        void noFiltersAppliedReturnsFullList() {
+            Meeting[] expectedMeetings = {meeting1, meeting2};
+            MeetingFilter filters = new MeetingFilter();
+            List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
+            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+        }
+
     }
 }

@@ -35,12 +35,7 @@ public class MeetingsService {
     }
 
     public Meeting getMeeting(String id) {
-        for (Meeting meeting : meetings
-        ) {
-            if (meeting.getId().equals(id))
-                return meeting;
-        }
-        throw new NotFoundException("Meeting not found");
+        return meetings.stream().filter(m -> m.getId().equals(id)).findFirst().orElseThrow(() -> new NotFoundException("Meeting not found"));
     }
 
     public void removeMeeting(Meeting meeting) {
@@ -135,7 +130,7 @@ public class MeetingsService {
         return meeting -> meeting.getAttendees().size() >= count;
     }
 
-    public List<Meeting> getFilteredMeetings(MeetingsFilters filters) {
+    public List<Meeting> getFilteredMeetings(MeetingFilter filters) {
         Stream<Meeting> stream = meetings.stream();
 
         if (filters.getDescription() != null)

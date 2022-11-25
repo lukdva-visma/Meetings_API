@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-public class MeetingsFilters {
+public class MeetingFilter {
     private LocalDate start;
     private LocalDate end;
     private String description;
@@ -16,6 +16,6 @@ public class MeetingsFilters {
     private String type;
     private Integer attendees;
 
-    public MeetingsFilters() {
+    public MeetingFilter() {
     }
 }

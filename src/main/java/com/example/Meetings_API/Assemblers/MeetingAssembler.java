@@ -1,21 +1,19 @@
 package com.example.Meetings_API.Assemblers;
 
 import com.example.Meetings_API.DTOs.MeetingDTO;
-import com.example.Meetings_API.Models.*;
-import org.springframework.stereotype.Component;
+import com.example.Meetings_API.Models.Meeting;
 
-@Component
 public class MeetingAssembler {
-    public Meeting mapMeeting(MeetingDTO meetingDto) {
+    public static Meeting mapMeeting(MeetingDTO meetingDto) {
         Meeting meeting = new Meeting();
         meeting.setName(meetingDto.getName());
-        meeting.setResponsiblePerson(meetingDto.getResponsiblePerson());
+        meeting.setResponsiblePerson(PersonAssembler.mapPerson(meetingDto.getResponsiblePerson()));
         meeting.setDescription(meetingDto.getDescription());
         meeting.setCategory(meetingDto.getCategory());
         meeting.setType(meetingDto.getType());
         meeting.setStartDate(meetingDto.getStartDate());
         meeting.setEndDate(meetingDto.getEndDate());
-        meeting.addAttendee(meetingDto.getResponsiblePerson());
+        meeting.addAttendee(PersonAssembler.mapPerson(meetingDto.getResponsiblePerson()));
         return meeting;
     }
 }

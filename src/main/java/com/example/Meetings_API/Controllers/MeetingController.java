@@ -2,9 +2,12 @@ package com.example.Meetings_API.Controllers;
 
 import com.example.Meetings_API.Assemblers.MeetingAssembler;
 import com.example.Meetings_API.Assemblers.PersonAssembler;
+import com.example.Meetings_API.Configurations.ConfigProperties;
 import com.example.Meetings_API.DTOs.MeetingDTO;
 import com.example.Meetings_API.DTOs.PersonDTO;
-import com.example.Meetings_API.Models.*;
+import com.example.Meetings_API.Models.Meeting;
+import com.example.Meetings_API.Models.MeetingFilter;
+import com.example.Meetings_API.Models.Person;
 import com.example.Meetings_API.Services.MeetingsService;
 import com.example.Meetings_API.Utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,19 +18,23 @@ import java.util.List;
 
 @RestController
 public class MeetingController {
-    @Autowired
+
     MeetingsService meetingsService;
-    @Autowired
+
     JwtUtils jwtUtils;
 
+    ConfigProperties config;
+
     @Autowired
-    MeetingAssembler meetingAssembler;
-    @Autowired
-    PersonAssembler personAssembler;
+    public MeetingController(MeetingsService meetingService, JwtUtils jwtUtils, ConfigProperties config) {
+        this.meetingsService = meetingService;
+        this.jwtUtils = jwtUtils;
+        this.config = config;
+    }
 
     @PostMapping("/meetings")
     public Meeting createMeeting(@RequestBody MeetingDTO meetingDto) {
-        Meeting meeting = meetingAssembler.mapMeeting(meetingDto);
+        Meeting meeting = MeetingAssembler.mapMeeting(meetingDto);
         meetingsService.addMeeting(meeting);
         return meeting;
     }
@@ -41,7 +48,7 @@ public class MeetingController {
 
     @PostMapping("/meetings/{id}/attendees")
     public Meeting addAttendee(@PathVariable String id, @RequestBody PersonDTO personDto) {
-        Person person = personAssembler.mapPerson(personDto);
+        Person person = PersonAssembler.mapPerson(personDto);
         return meetingsService.addPersonToMeeting(id, person);
     }
 
@@ -52,7 +59,7 @@ public class MeetingController {
     }
 
     @GetMapping("/meetings")
-    public List<Meeting> getMeetings(MeetingsFilters filters) {
+    public List<Meeting> getMeetings(MeetingFilter filters) {
         return meetingsService.getFilteredMeetings(filters);
     }
 }
