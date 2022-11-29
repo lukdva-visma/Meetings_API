@@ -69,7 +69,7 @@ public class MeetingsService {
         if (personHasConflictingMeetings(person, meeting))
             throw new BadRequestException("Person has conflicting meetings");
         meeting.addAttendee(person);
-        updateMeeting(meeting);
+        repository.writeMeetings(meetings);
         return meeting;
     }
 
@@ -81,14 +81,8 @@ public class MeetingsService {
         if (attendee.getPerson().getId().equals(meeting.getResponsiblePerson().getId()))
             throw new BadRequestException("Cannot remove responsible person from meeting");
         meeting.removeAttendee(attendee);
-        updateMeeting(meeting);
-        return meeting;
-    }
-
-    public void updateMeeting(Meeting meeting) {
-        int index = meetings.indexOf(meeting);
-        meetings.set(index, meeting);
         repository.writeMeetings(meetings);
+        return meeting;
     }
 
     public void deleteMeeting(String meetingId, String personId) {
@@ -115,7 +109,7 @@ public class MeetingsService {
     }
 
     private Predicate<Meeting> byResponsiblePerson(String id) {
-        return meeting -> meeting.doesContainPersonAsAttendee(id);
+        return meeting -> meeting.getResponsiblePerson().getId().equals(id);
     }
 
     private Predicate<Meeting> byStartDate(LocalDateTime start) {

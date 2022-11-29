@@ -1,9 +1,14 @@
 package com.example.Meetings_API.Services;
 
 
+import com.example.Meetings_API.Exceptions.BadRequestException;
 import com.example.Meetings_API.Exceptions.NotFoundException;
+import com.example.Meetings_API.Exceptions.UnauthorizedException;
 import com.example.Meetings_API.Models.*;
 import com.example.Meetings_API.Repository.MeetingsRepository;
+import com.example.Meetings_API.Utils.MeetingBuilder;
+import com.example.Meetings_API.Utils.PersonBuilder;
+import com.example.Meetings_API.Utils.TestUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
@@ -19,46 +24,31 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MeetingServiceUnitTest {
-
-    Meeting meeting;
-    Person responsiblePerson;
     @Mock
     MeetingsRepository repository;
     @InjectMocks
     MeetingsService meetingsService;
 
-    @BeforeEach
-    public void createMeeting() {
-        LocalDateTime start = LocalDateTime.of(2025, 10, 17, 10, 0); //2025-10-17 10:00:00
-        LocalDateTime end = LocalDateTime.of(2025, 10, 17, 11, 0); //2025-10-17 11:00:00
-        String name = "Test team meeting";
-        String description = "This is a meeting of test team";
-        Category category = Category.Hub;
-        Type type = Type.Live;
-        responsiblePerson = new Person("id1", "John Jones");
-        meeting = new Meeting(name, responsiblePerson, description, category, type, start, end);
-    }
-
     @Test
-    @DisplayName("Add meeting method adds meeting to list and calls repository with updated list")
-    void verifyAddMeetingMethodAddsMeetingAndCallsRepositoryWithUpdated() {
+    void verifyAddMeetingCallsRepositoryWithUpdatedList() {
+        Meeting meeting = MeetingBuilder.aMeeting().build();
         List<Meeting> expectedMeetingsList = List.of(meeting);
         meetingsService.addMeeting(meeting);
         verify(repository).writeMeetings(expectedMeetingsList);
     }
 
     @Test
-    @DisplayName("getMeeting returns existing meeting")
-    void getExistingMeetingReturnsAddedMeeting() {
-        meetingsService.addMeeting(meeting);
+    void getExistingMeeting() {
+        Meeting meeting = MeetingBuilder.aMeeting().build();
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+
         Meeting retrievedMeeting = meetingsService.getMeeting(meeting.getId());
         assertEquals(retrievedMeeting, meeting);
     }
 
     @Test
-    @DisplayName("getMeeting returns null for non existing meeting")
-    void tryGettingMeetingNotInTheList() {
-        Exception exception = assertThrows(NotFoundException.class, () -> meetingsService.getMeeting(meeting.getId()));
+    void tryingToGetNonExistentMeetingThrowsException() {
+        Exception exception = assertThrows(NotFoundException.class, () -> meetingsService.getMeeting(TestUtils.getRandomUUID()));
         String expectedMessage = "Meeting not found";
         String actualMessage = exception.getMessage();
         assertEquals(expectedMessage, actualMessage);
@@ -66,91 +56,81 @@ class MeetingServiceUnitTest {
 
     @Test
     void checkMeetingIsRemovedSuccessfully() {
-        meetingsService.addMeeting(meeting);
-        reset(repository); // test does not care calls to mock before this statement as it is a setup
+        Meeting meeting = MeetingBuilder.aMeeting().build();
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
 
         meetingsService.removeMeeting(meeting);
-        assertEquals(meetingsService.getFilteredMeetings(new MeetingFilter()).size(), 0);
         Mockito.verify(repository).writeMeetings(new ArrayList<>());
     }
 
     @Test
     void listOfMeetingsPersonIsInWhenPersonHasNoMeetings() {
-        Meeting[] emptyArray = {};
-        meeting.addAttendee(responsiblePerson);
-        meetingsService.addMeeting(meeting);
-        Person attendee = new Person("id2", "John Smith");
-        List<Meeting> listOfMeetings = meetingsService.listOfMeetingsPersonIsIn(attendee);
-        assertArrayEquals(listOfMeetings.toArray(), emptyArray);
+        List<Meeting> expectedEmptyList = List.of();
+        Person responsiblePerson = PersonBuilder.aPerson().build();
+        Meeting meeting = MeetingBuilder.aMeeting().withResponsiblePerson(responsiblePerson).withAttendee(responsiblePerson).build();
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+
+        Person personWithNoMeetings = PersonBuilder.aPerson().withId("id2").withName("John Smith").build();
+        List<Meeting> listOfMeetings = meetingsService.listOfMeetingsPersonIsIn(personWithNoMeetings);
+        assertIterableEquals(listOfMeetings, expectedEmptyList);
     }
 
     @Test
     void listOfMeetingsPersonIsInWhenPersonAttendsOneOfTheMeetings() {
-        LocalDateTime date = LocalDateTime.now();
-        String name = "Unit Test meeting";
-        String description = "This is a meeting of unit tests";
-        Category category = Category.CodeMonkey;
-        Type type = Type.InPerson;
-        Meeting meetingPersonIsIn = new Meeting(name, responsiblePerson, description, category, type, date, date);
-        Person attendee = new Person("id2", "John Smith");
-        meetingPersonIsIn.addAttendee(attendee);
 
-        Meeting[] meetingArray = {meetingPersonIsIn};
-        meeting.addAttendee(responsiblePerson);
-        meetingsService.addMeeting(meeting);
-        meetingsService.addMeeting(meetingPersonIsIn);
+        Person personParticipatingInMeeting = PersonBuilder.aPerson().withId("id2").withName("John Smith").build();
+        Meeting meetingWithoutAttendees = MeetingBuilder.aMeeting().build();
+        Meeting meetingPersonIsIn = MeetingBuilder.aMeeting().withAttendee(personParticipatingInMeeting).build();
 
-        List<Meeting> listOfMeetings = meetingsService.listOfMeetingsPersonIsIn(attendee);
-        assertArrayEquals(listOfMeetings.toArray(), meetingArray);
+        List<Meeting> expectedMeetingList = List.of(meetingPersonIsIn);
+        List<Meeting> meetingListToStub = new ArrayList<>(List.of(meetingWithoutAttendees, meetingPersonIsIn));
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingListToStub);
+
+        List<Meeting> listOfMeetings = meetingsService.listOfMeetingsPersonIsIn(personParticipatingInMeeting);
+        assertIterableEquals(listOfMeetings, expectedMeetingList);
     }
 
     @Test
     void personHasConflictingMeetingsReturnsTrue() {
-        LocalDateTime start = LocalDateTime.of(2025, 10, 17, 10, 30, 0); //2025-10-17 10:30:00
-        LocalDateTime end = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
-        String name = "I Overlap";
-        String description = "This definitely overlaps";
-        Category category = Category.Short;
-        Type type = Type.Live;
-        Meeting overlappingMeeting = new Meeting(name, responsiblePerson, description, category, type, start, end);
+        LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 30, 0); //2025-10-17 10:30:00
+        LocalDateTime end1 = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
+        LocalDateTime start2 = LocalDateTime.of(2025, 10, 17, 10, 45, 0); //2025-10-17 10:45:00
+        LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 11, 45, 0); //2025-10-17 11:45:00
 
-        Person personWithConflictingMeetings = new Person("id123", "Mr. Conflict");
-        meeting.addAttendee(personWithConflictingMeetings);
-        meetingsService.addMeeting(meeting);
-        meetingsService.addMeeting(overlappingMeeting);
-        assertTrue(meetingsService.personHasConflictingMeetings(personWithConflictingMeetings, overlappingMeeting));
+        Person personWithAConflictingMeeting = PersonBuilder.aPerson().build();
+        Meeting meeting = MeetingBuilder.aMeeting().withStartDate(start1).withEndDate(end1).withAttendee(personWithAConflictingMeeting).build();
+        Meeting meetingToBeAttended = MeetingBuilder.aMeeting().withStartDate(start2).withEndDate(end2).build();
+        List<Meeting> meetingListToStub = new ArrayList<>(List.of(meeting, meetingToBeAttended));
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingListToStub);
+
+        assertTrue(meetingsService.personHasConflictingMeetings(personWithAConflictingMeeting, meetingToBeAttended));
     }
 
     @Test
     void personHasConflictingMeetingsReturnsFalse() {
-        LocalDateTime start = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
-        LocalDateTime end = LocalDateTime.of(2025, 10, 17, 12, 0, 0); //2025-10-17 12:00:00
-        String name = "I Overlap";
-        String description = "This definitely overlaps";
-        Category category = Category.Short;
-        Type type = Type.Live;
-        Meeting nonOverlappingMeeting = new Meeting(name, responsiblePerson, description, category, type, start, end);
+        LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 30, 0); //2025-10-17 10:30:00
+        LocalDateTime end1 = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
+        LocalDateTime start2 = LocalDateTime.of(2025, 10, 17, 12, 0, 0); //2025-10-17 12:00:00
+        LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 13, 0, 0); //2025-10-17 13:00:00
 
-        Person personWithoutConflictingMeetings = new Person("id123", "Mr. Conflict");
-        meeting.addAttendee(personWithoutConflictingMeetings);
-        meetingsService.addMeeting(meeting);
-        meetingsService.addMeeting(nonOverlappingMeeting);
-        assertFalse(meetingsService.personHasConflictingMeetings(personWithoutConflictingMeetings, nonOverlappingMeeting));
+        Person personWithoutConflictingMeeting = PersonBuilder.aPerson().build();
+        Meeting meeting = MeetingBuilder.aMeeting().withStartDate(start1).withEndDate(end1).withAttendee(personWithoutConflictingMeeting).build();
+        Meeting nonOverlappingMeeting = MeetingBuilder.aMeeting().withStartDate(start2).withEndDate(end2).build();
+        List<Meeting> meetingListToStub = new ArrayList<>(List.of(meeting, nonOverlappingMeeting));
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingListToStub);
+
+        assertFalse(meetingsService.personHasConflictingMeetings(personWithoutConflictingMeeting, nonOverlappingMeeting));
     }
 
     @Test
     void dateRangesOverlapReturnTrue() {
         LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 0, 0); //2025-10-17 10:00:00
         LocalDateTime end1 = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
-        Meeting meeting1 = new Meeting();
-        meeting1.setStartDate(start1);
-        meeting1.setEndDate(end1);
+        Meeting meeting1 = MeetingBuilder.aMeeting().withStartDate(start1).withEndDate(end1).build();
 
         LocalDateTime start2 = LocalDateTime.of(2025, 10, 17, 10, 30, 0); //2025-10-17 10:30:00
         LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 12, 0, 0); //2025-10-17 12:00:00
-        Meeting meeting2 = new Meeting();
-        meeting2.setStartDate(start2);
-        meeting2.setEndDate(end2);
+        Meeting meeting2 = MeetingBuilder.aMeeting().withStartDate(start2).withEndDate(end2).build();
 
         assertTrue(meetingsService.dateRangesOverlap(meeting1, meeting2));
     }
@@ -159,15 +139,11 @@ class MeetingServiceUnitTest {
     void dateRangesOverlapReturnFalse() {
         LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 0, 0);  //2025-10-17 10:00:00
         LocalDateTime end1 = LocalDateTime.of(2025, 10, 17, 11, 0, 0);  //2025-10-17 11:00:00
-        Meeting meeting1 = new Meeting();
-        meeting1.setStartDate(start1);
-        meeting1.setEndDate(end1);
+        Meeting meeting1 = MeetingBuilder.aMeeting().withStartDate(start1).withEndDate(end1).build();
 
         LocalDateTime start2 = LocalDateTime.of(2025, 10, 17, 11, 30, 0);  //2025-10-17 11:30:00
         LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 12, 0, 0);  //2025-10-17 12:00:00
-        Meeting meeting2 = new Meeting();
-        meeting2.setStartDate(start2);
-        meeting2.setEndDate(end2);
+        Meeting meeting2 = MeetingBuilder.aMeeting().withStartDate(start2).withEndDate(end2).build();
 
         assertFalse(meetingsService.dateRangesOverlap(meeting1, meeting2));
     }
@@ -176,27 +152,130 @@ class MeetingServiceUnitTest {
     void dateRangesOverlapReturnFalseWhenBoundariesTouch() {
         LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 0, 0); //2025-10-17 10:00:00
         LocalDateTime end1 = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
-        Meeting meeting1 = new Meeting();
-        meeting1.setStartDate(start1);
-        meeting1.setEndDate(end1);
+        Meeting meeting1 = MeetingBuilder.aMeeting().withStartDate(start1).withEndDate(end1).build();
 
         LocalDateTime start2 = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
         LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 12, 0, 0); //2025-10-17 12:00:00
-        Meeting meeting2 = new Meeting();
-        meeting2.setStartDate(start2);
-        meeting2.setEndDate(end2);
+        Meeting meeting2 = MeetingBuilder.aMeeting().withStartDate(start2).withEndDate(end2).build();
 
         assertFalse(meetingsService.dateRangesOverlap(meeting1, meeting2));
+    }
+
+    @Test
+    void addPersonToMeetingSuccessfully() {
+        Person person = PersonBuilder.aPerson().build();
+        Meeting meeting = MeetingBuilder.aMeeting().build();
+
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+
+        Meeting updatedMeeting = meetingsService.addPersonToMeeting(meeting.getId(), person);
+        boolean doesMeetingContainPersonAsAttendee = updatedMeeting.getAttendees().stream().anyMatch(attendee -> attendee.getPerson().getId().equals(person.getId()));
+        assertTrue(doesMeetingContainPersonAsAttendee);
+        Mockito.verify(repository).writeMeetings(new ArrayList<Meeting>(List.of(updatedMeeting)));
+    }
+
+    @Test
+    void tryingToAddAlreadyAddedPersonToMeetingThrowsException() {
+        Person person = PersonBuilder.aPerson().build();
+        Meeting meeting = MeetingBuilder.aMeeting().withAttendee(person).build();
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+
+        Exception exception = assertThrows(BadRequestException.class, () -> meetingsService.addPersonToMeeting(meeting.getId(), person));
+        String expectedMessage = "Person already added to meeting";
+        String actualMessage = exception.getMessage();
+        assertEquals(expectedMessage, actualMessage);
+    }
+
+    @Test
+    void tryingToAddPersonToConflictingMeetingThrowsException() {
+        Person person = PersonBuilder.aPerson().build();
+        LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 0, 0); //2025-10-17 10:00:00
+        LocalDateTime end1 = LocalDateTime.of(2025, 10, 17, 11, 0, 0); //2025-10-17 11:00:00
+        Meeting meetingWithPersonAddedAsAttendee = MeetingBuilder.aMeeting().withStartDate(start1).withEndDate(end1).withAttendee(person).build();
+
+        LocalDateTime start2 = LocalDateTime.of(2025, 10, 17, 10, 30, 0); //2025-10-17 10:30:00
+        LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 12, 0, 0); //2025-10-17 12:00:00
+        Meeting overlappingMeeting = MeetingBuilder.aMeeting().withStartDate(start2).withEndDate(end2).build();
+
+        List<Meeting> meetingsToBeStubbed = new ArrayList<>(List.of(meetingWithPersonAddedAsAttendee, overlappingMeeting));
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingsToBeStubbed);
+
+        Exception exception = assertThrows(BadRequestException.class, () -> meetingsService.addPersonToMeeting(overlappingMeeting.getId(), person));
+        String expectedMessage = "Person has conflicting meetings";
+        String actualMessage = exception.getMessage();
+        assertEquals(expectedMessage, actualMessage);
+    }
+
+    @Test
+    void removeAttendeeFromMeetingSuccessfully() {
+        Person person = PersonBuilder.aPerson().build();
+        Meeting meeting = MeetingBuilder.aMeeting().withAttendee(person).build();
+        String attendeeId = meeting.getAttendees().get(0).getId();
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+
+        Meeting updatedMeeting = meetingsService.removeAttendeeFromMeeting(meeting.getId(), attendeeId);
+        boolean isAttendeeRemovedFromMeeting = updatedMeeting.getAttendees().stream().noneMatch(attendee -> attendee.getPerson().getId().equals(person.getId()));
+        assertTrue(isAttendeeRemovedFromMeeting);
+        Mockito.verify(repository).writeMeetings(new ArrayList<Meeting>(List.of(updatedMeeting)));
+    }
+
+    @Test
+    void tryingToRemoveNonExistingAttendeeThrowsException() {
+        Person person = PersonBuilder.aPerson().build();
+        Meeting meetingWithAttendee = MeetingBuilder.aMeeting().withAttendee(person).build();
+        Meeting meetingWithOutAttendee = MeetingBuilder.aMeeting().build();
+        String attendeeId = meetingWithAttendee.getAttendees().get(0).getId();
+        List<Meeting> meetingsToBeStubbed = new ArrayList<>(List.of(meetingWithAttendee, meetingWithOutAttendee));
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingsToBeStubbed);
+
+        Exception exception = assertThrows(NotFoundException.class, () -> meetingsService.removeAttendeeFromMeeting(meetingWithOutAttendee.getId(), attendeeId));
+        String expectedMessage = "Attendee not found";
+        String actualMessage = exception.getMessage();
+        assertEquals(expectedMessage, actualMessage);
+    }
+
+    @Test
+    void tryingToRemoveResponsiblePersonAsAttendeeThrowsException() {
+        Person person = PersonBuilder.aPerson().build();
+        Meeting meeting = MeetingBuilder.aMeeting().withResponsiblePerson(person).withAttendee(person).build();
+        String attendeeId = meeting.getAttendees().get(0).getId();
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+
+        Exception exception = assertThrows(BadRequestException.class, () -> meetingsService.removeAttendeeFromMeeting(meeting.getId(), attendeeId));
+        String expectedMessage = "Cannot remove responsible person from meeting";
+        String actualMessage = exception.getMessage();
+        assertEquals(expectedMessage, actualMessage);
+    }
+
+    @Test
+    void deleteMeetingAsResponsiblePerson() {
+        Person person = PersonBuilder.aPerson().build();
+        Meeting meeting = MeetingBuilder.aMeeting().withResponsiblePerson(person).build();
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+
+        meetingsService.deleteMeeting(meeting.getId(), person.getId());
+        Mockito.verify(repository).writeMeetings(new ArrayList<Meeting>(List.of()));
+    }
+
+    @Test
+    void tryingDeleteMeetingAsNonResponsiblePersonThrowsException() {
+        Person nonResponsiblePerson = PersonBuilder.aPerson().build();
+        Person responsiblePerson = PersonBuilder.aPerson().build();
+        Meeting meeting = MeetingBuilder.aMeeting().withResponsiblePerson(responsiblePerson).build();
+        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+
+        Exception exception = assertThrows(UnauthorizedException.class, () -> meetingsService.deleteMeeting(meeting.getId(), nonResponsiblePerson.getId()));
+        String expectedMessage = "Unauthorized";
+        String actualMessage = exception.getMessage();
+        assertEquals(expectedMessage, actualMessage);
     }
 
     @Nested
     @DisplayName("Tests for filtering meetings")
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    @ExtendWith(MockitoExtension.class)
     class TestsFilteringMeetings {
         @Mock
         MeetingsRepository repository;
-        @InjectMocks
         MeetingsService meetingsService;
         Meeting meeting1;
         Meeting meeting2;
@@ -205,112 +284,115 @@ class MeetingServiceUnitTest {
         public void createMeeting() {
             LocalDateTime start1 = LocalDateTime.of(2025, 10, 17, 10, 0, 0); //2025-10-17 10:00:00
             LocalDateTime end1 = LocalDateTime.of(2025, 10, 19, 11, 30, 0); //2025-10-19 11:30:00
-            String name = "Test team meeting";
-            String description = "This is a meeting of test team";
-            Category category = Category.Hub;
-            Type type = Type.Live;
-            Person responsiblePerson1 = new Person("ID1", "Michael Carter");
-            Person attendee1 = new Person("ID5", "Michael Gary");
-            Person attendee2 = new Person("ID6", "Michael Payton");
-            meeting1 = new Meeting(name, responsiblePerson1, description, category, type, start1, end1);
-            meeting1.addAttendee(responsiblePerson1);
-            meeting1.addAttendee(attendee1);
-            meeting1.addAttendee(attendee2);
+            meeting1 = MeetingBuilder.aMeeting()
+                    .withName("Test team meeting")
+                    .withDescription("This is a meeting of test team")
+                    .withCategory(Category.Hub)
+                    .withType(Type.Live)
+                    .withStartDate(start1)
+                    .withEndDate(end1)
+                    .withResponsiblePerson(PersonBuilder.aPerson().withId("ID1").build())
+                    .withAttendee(PersonBuilder.aPerson().build())
+                    .withAttendee(PersonBuilder.aPerson().build())
+                    .withAttendee(PersonBuilder.aPerson().build())
+                    .build();
 
             LocalDateTime start2 = LocalDateTime.of(2025, 10, 18, 11, 30, 0); //2025-10-18 11:30:00
             LocalDateTime end2 = LocalDateTime.of(2025, 10, 18, 12, 30, 0); //2025-10-18 12:30:00
-            String name2 = "Team Java building";
-            String description2 = "This is a meeting of building Java";
-            Category category2 = Category.TeamBuilding;
-            Type type2 = Type.InPerson;
-            Person responsiblePerson2 = new Person("ID2", "Dwayne Johnson");
-            meeting2 = new Meeting(name2, responsiblePerson2, description2, category2, type2, start2, end2);
+            meeting2 = MeetingBuilder.aMeeting()
+                    .withName("Team Java building")
+                    .withDescription("This is a meeting of building Java")
+                    .withCategory(Category.TeamBuilding)
+                    .withType(Type.InPerson)
+                    .withStartDate(start2)
+                    .withEndDate(end2)
+                    .build();
 
             MockitoAnnotations.openMocks(this);
-            meetingsService.addMeeting(meeting1);
-            meetingsService.addMeeting(meeting2);
+            List<Meeting> meetingListToStub = new ArrayList<>(List.of(meeting1, meeting2));
+            meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingListToStub);
         }
 
         @Test
         void filterByCategoryReturnsMeeting() {
-            Meeting[] expectedMeetings = {meeting2};
+            List<Meeting> expectedEmptyList = List.of(meeting2);
             MeetingFilter filters = new MeetingFilter();
             filters.setCategory("TeamBuilding");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+            assertIterableEquals(filteredMeetings, expectedEmptyList);
         }
 
         @Test
         void filterByCategoryReturnsNoMeetings() {
-            Meeting[] expectedMeetings = {};
+            List<Meeting> expectedEmptyList = List.of();
             MeetingFilter filters = new MeetingFilter();
             filters.setCategory("CodeMonkey");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+            assertIterableEquals(filteredMeetings, expectedEmptyList);
         }
 
         @Test
         void filterByTypeReturnsMeeting() {
-            Meeting[] expectedMeetings = {meeting1};
+            List<Meeting> expectedEmptyList = List.of(meeting1);
             MeetingFilter filters = new MeetingFilter();
             filters.setType("Live");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+            assertIterableEquals(filteredMeetings, expectedEmptyList);
         }
 
         @Test
         void filterByDescriptionReturnsMeeting() {
-            Meeting[] expectedMeetings = {meeting2};
+            List<Meeting> expectedEmptyList = List.of(meeting2);
             MeetingFilter filters = new MeetingFilter();
             filters.setDescription("java");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+            assertIterableEquals(filteredMeetings, expectedEmptyList);
         }
 
         @Test
         void filterByResponsiblePersonReturnsMeeting() {
-            Meeting[] expectedMeetings = {meeting1};
+            List<Meeting> expectedEmptyList = List.of(meeting1);
             MeetingFilter filters = new MeetingFilter();
             filters.setResponsiblePersonId("ID1");
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+            assertIterableEquals(filteredMeetings, expectedEmptyList);
         }
 
         @Test
         void filterByStartDateReturnsMeeting() {
-            Meeting[] expectedMeetings = {meeting2};
+            List<Meeting> expectedEmptyList = List.of(meeting2);
             LocalDate filterStart = LocalDate.of(2025, 10, 18); //2025-10-18
             MeetingFilter filters = new MeetingFilter();
             filters.setStart(filterStart);
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+            assertIterableEquals(filteredMeetings, expectedEmptyList);
         }
 
         @Test
         void filterByEndDateReturnsMeeting() {
-            Meeting[] expectedMeetings = {meeting2};
+            List<Meeting> expectedEmptyList = List.of(meeting2);
             LocalDate filterEnd = LocalDate.of(2025, 10, 18); //2025-10-18
             MeetingFilter filters = new MeetingFilter();
             filters.setEnd(filterEnd);
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+            assertIterableEquals(filteredMeetings, expectedEmptyList);
         }
 
         @Test
         void filterByAttendeesCountReturnsMeeting() {
-            Meeting[] expectedMeetings = {meeting1};
+            List<Meeting> expectedEmptyList = List.of(meeting1);
             MeetingFilter filters = new MeetingFilter();
             filters.setAttendees(2);
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+            assertIterableEquals(filteredMeetings, expectedEmptyList);
         }
 
         @Test
         void noFiltersAppliedReturnsFullList() {
-            Meeting[] expectedMeetings = {meeting1, meeting2};
+            List<Meeting> expectedEmptyList = List.of(meeting1, meeting2);
             MeetingFilter filters = new MeetingFilter();
             List<Meeting> filteredMeetings = meetingsService.getFilteredMeetings(filters);
-            assertArrayEquals(filteredMeetings.toArray(), expectedMeetings);
+            assertIterableEquals(filteredMeetings, expectedEmptyList);
         }
 
     }
