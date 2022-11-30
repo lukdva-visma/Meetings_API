@@ -28,8 +28,9 @@ public class MeetingsService {
     }
 
     public void addMeeting(Meeting meeting) {
-        if (personHasConflictingMeetings(meeting.getResponsiblePerson(), meeting))
+        if (personHasConflictingMeetings(meeting.getResponsiblePerson(), meeting)) {
             throw new BadRequestException("Person has conflicting meetings");
+        }
         meetings.add(meeting);
         repository.writeMeetings(meetings);
     }
@@ -46,8 +47,9 @@ public class MeetingsService {
     public List<Meeting> listOfMeetingsPersonIsIn(Person person) {
         List<Meeting> list = new ArrayList<>();
         for (Meeting meeting : meetings) {
-            if (meeting.doesContainPersonAsAttendee(person.getId()))
+            if (meeting.doesContainPersonAsAttendee(person.getId())) {
                 list.add(meeting);
+            }
         }
         return list;
     }
@@ -55,8 +57,9 @@ public class MeetingsService {
     public boolean personHasConflictingMeetings(Person person, Meeting meetingToBeAttended) {
         List<Meeting> list = listOfMeetingsPersonIsIn(person);
         for (Meeting meeting : list) {
-            if (dateRangesOverlap(meeting, meetingToBeAttended))
+            if (dateRangesOverlap(meeting, meetingToBeAttended)) {
                 return true;
+            }
         }
         return false;
 
@@ -64,10 +67,12 @@ public class MeetingsService {
 
     public Meeting addPersonToMeeting(String meetingId, Person person) {
         Meeting meeting = getMeeting(meetingId);
-        if (meeting.doesContainPersonAsAttendee(person.getId()))
+        if (meeting.doesContainPersonAsAttendee(person.getId())) {
             throw new BadRequestException("Person already added to meeting");
-        if (personHasConflictingMeetings(person, meeting))
+        }
+        if (personHasConflictingMeetings(person, meeting)) {
             throw new BadRequestException("Person has conflicting meetings");
+        }
         meeting.addAttendee(person);
         repository.writeMeetings(meetings);
         return meeting;
@@ -75,11 +80,13 @@ public class MeetingsService {
 
     public Meeting removeAttendeeFromMeeting(String meetingId, String attendeeId) {
         Meeting meeting = getMeeting(meetingId);
-        if (!meeting.isAttendeeAvailable(attendeeId))
+        if (!meeting.isAttendeeAvailable(attendeeId)) {
             throw new NotFoundException("Attendee not found");
+        }
         Attendee attendee = meeting.getAttendee(attendeeId);
-        if (attendee.getPerson().getId().equals(meeting.getResponsiblePerson().getId()))
+        if (attendee.getPerson().getId().equals(meeting.getResponsiblePerson().getId())) {
             throw new BadRequestException("Cannot remove responsible person from meeting");
+        }
         meeting.removeAttendee(attendee);
         repository.writeMeetings(meetings);
         return meeting;
@@ -87,8 +94,9 @@ public class MeetingsService {
 
     public void deleteMeeting(String meetingId, String personId) {
         Meeting meeting = getMeeting(meetingId);
-        if (!meeting.getResponsiblePerson().getId().equals(personId))
+        if (!meeting.getResponsiblePerson().getId().equals(personId)) {
             throw new UnauthorizedException();
+        }
         removeMeeting(meeting);
     }
 
@@ -127,20 +135,27 @@ public class MeetingsService {
     public List<Meeting> getFilteredMeetings(MeetingFilter filters) {
         Stream<Meeting> stream = meetings.stream();
 
-        if (filters.getDescription() != null)
+        if (filters.getDescription() != null) {
             stream = stream.filter(byDescription(filters.getDescription()));
-        if (filters.getResponsiblePersonId() != null)
+        }
+        if (filters.getResponsiblePersonId() != null) {
             stream = stream.filter(byResponsiblePerson(filters.getResponsiblePersonId()));
-        if (filters.getCategory() != null)
+        }
+        if (filters.getCategory() != null) {
             stream = stream.filter(byCategory(filters.getCategory()));
-        if (filters.getType() != null)
+        }
+        if (filters.getType() != null) {
             stream = stream.filter(byType(filters.getType()));
-        if (filters.getAttendees() != null)
+        }
+        if (filters.getAttendees() != null) {
             stream = stream.filter(byAttendeesCount(filters.getAttendees()));
-        if (filters.getStart() != null)
+        }
+        if (filters.getStart() != null) {
             stream = stream.filter(byStartDate(filters.getStart().atStartOfDay()));
-        if (filters.getEnd() != null)
+        }
+        if (filters.getEnd() != null) {
             stream = stream.filter(byEndDate(filters.getEnd().plusDays(1).atStartOfDay()));
+        }
 
         List<Meeting> filteredMeetings = stream.collect(Collectors.toList());
         return filteredMeetings;

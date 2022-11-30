@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class JwtUtils {
-    
+
     private ConfigProperties config;
 
     public JwtUtils(ConfigProperties config) {
@@ -17,8 +17,9 @@ public class JwtUtils {
 
     private String extractToken(String bearer) {
         String token = "";
-        if (bearer.toLowerCase().startsWith("bearer "))
+        if (bearer.toLowerCase().startsWith("bearer ")) {
             token = bearer.substring(7);
+        }
         return token;
     }
 

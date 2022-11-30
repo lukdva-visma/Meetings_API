@@ -38,8 +38,9 @@ public class Meeting {
 
     public boolean doesContainPersonAsAttendee(String id) {
         for (Attendee attendee : attendees) {
-            if (attendee.getPerson().getId().equals(id))
+            if (attendee.getPerson().getId().equals(id)) {
                 return true;
+            }
         }
         return false;
     }
@@ -51,8 +52,9 @@ public class Meeting {
 
     public Attendee getAttendee(String id) {
         for (Attendee attendee : attendees) {
-            if (attendee.getId().equals(id))
+            if (attendee.getId().equals(id)) {
                 return attendee;
+            }
         }
         return null;
     }
