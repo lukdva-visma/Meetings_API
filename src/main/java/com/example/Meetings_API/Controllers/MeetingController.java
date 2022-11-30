@@ -4,6 +4,7 @@ import com.example.Meetings_API.Assemblers.MeetingAssembler;
 import com.example.Meetings_API.Assemblers.PersonAssembler;
 import com.example.Meetings_API.Configurations.ConfigProperties;
 import com.example.Meetings_API.DTOs.MeetingDTO;
+import com.example.Meetings_API.DTOs.MeetingResponseDTO;
 import com.example.Meetings_API.DTOs.PersonDTO;
 import com.example.Meetings_API.Models.Meeting;
 import com.example.Meetings_API.Models.MeetingFilter;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 public class MeetingController {
@@ -33,10 +35,11 @@ public class MeetingController {
     }
 
     @PostMapping("/meetings")
-    public Meeting createMeeting(@RequestBody MeetingDTO meetingDto) {
+    public MeetingResponseDTO createMeeting(@RequestBody MeetingDTO meetingDto) {
         Meeting meeting = MeetingAssembler.mapMeeting(meetingDto);
         meetingsService.addMeeting(meeting);
-        return meeting;
+        MeetingResponseDTO meetingResponseDTO = MeetingAssembler.toResponseDto(meeting);
+        return meetingResponseDTO;
     }
 
     @DeleteMapping("/meetings/{id}")
@@ -47,9 +50,11 @@ public class MeetingController {
     }
 
     @PostMapping("/meetings/{id}/attendees")
-    public Meeting addAttendee(@PathVariable String id, @RequestBody PersonDTO personDto) {
+    public MeetingResponseDTO addAttendee(@PathVariable String id, @RequestBody PersonDTO personDto) {
         Person person = PersonAssembler.mapPerson(personDto);
-        return meetingsService.addPersonToMeeting(id, person);
+        Meeting updatedMeeting = meetingsService.addPersonToMeeting(id, person);
+        MeetingResponseDTO meetingResponseDTO = MeetingAssembler.toResponseDto(updatedMeeting);
+        return meetingResponseDTO;
     }
 
     @DeleteMapping("/meetings/{meetingId}/attendees/{attendeeId}")
@@ -59,7 +64,9 @@ public class MeetingController {
     }
 
     @GetMapping("/meetings")
-    public List<Meeting> getMeetings(MeetingFilter filters) {
-        return meetingsService.getFilteredMeetings(filters);
+    public List<MeetingResponseDTO> getMeetings(MeetingFilter filters) {
+        List<Meeting> meetings = meetingsService.getFilteredMeetings(filters);
+        List<MeetingResponseDTO> responseMeetings = meetings.stream().map(meeting -> MeetingAssembler.toResponseDto(meeting)).collect(Collectors.toList());
+        return responseMeetings;
     }
 }

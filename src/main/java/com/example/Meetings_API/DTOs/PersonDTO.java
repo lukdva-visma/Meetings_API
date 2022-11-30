@@ -9,6 +9,8 @@ public class PersonDTO {
     private String id;
     private String name;
 
-    public PersonDTO() {
+    public PersonDTO(String id, String name) {
+        this.id = id;
+        this.name = name;
     }
 }

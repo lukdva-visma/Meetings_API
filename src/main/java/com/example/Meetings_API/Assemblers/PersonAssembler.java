@@ -5,7 +5,10 @@ import com.example.Meetings_API.Models.Person;
 
 public class PersonAssembler {
     public static Person mapPerson(PersonDTO personDto) {
-        Person person = new Person(personDto.getId(), personDto.getName());
-        return person;
+        return new Person(personDto.getId(), personDto.getName());
+    }
+
+    public static PersonDTO toDto(Person person) {
+        return new PersonDTO(person.getId(), person.getName());
     }
 }
