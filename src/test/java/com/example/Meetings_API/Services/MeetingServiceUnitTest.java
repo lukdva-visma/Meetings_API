@@ -25,9 +25,15 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class MeetingServiceUnitTest {
     @Mock
-    MeetingsRepository repository;
-    @InjectMocks
-    MeetingsService meetingsService;
+    private MeetingsRepository repository;
+    private MeetingsService meetingsService;
+    private final List<Meeting> meetings = new ArrayList<>();
+
+    @BeforeEach
+    public void setup() {
+        when(repository.readMeetings()).thenReturn(meetings);
+        meetingsService = new MeetingsService(repository);
+    }
 
     @Test
     void verifyAddMeetingCallsRepositoryWithUpdatedList() {
@@ -40,7 +46,7 @@ class MeetingServiceUnitTest {
     @Test
     void getExistingMeeting() {
         Meeting meeting = MeetingBuilder.aMeeting().build();
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+        meetings.add(meeting);
 
         Meeting retrievedMeeting = meetingsService.getMeeting(meeting.getId());
         assertEquals(retrievedMeeting, meeting);
@@ -57,7 +63,7 @@ class MeetingServiceUnitTest {
     @Test
     void checkMeetingIsRemovedSuccessfully() {
         Meeting meeting = MeetingBuilder.aMeeting().build();
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+        meetings.add(meeting);
 
         meetingsService.removeMeeting(meeting);
         Mockito.verify(repository).writeMeetings(new ArrayList<>());
@@ -68,7 +74,7 @@ class MeetingServiceUnitTest {
         List<Meeting> expectedEmptyList = List.of();
         Person responsiblePerson = PersonBuilder.aPerson().build();
         Meeting meeting = MeetingBuilder.aMeeting().withResponsiblePerson(responsiblePerson).withAttendee(responsiblePerson).build();
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+        meetings.add(meeting);
 
         Person personWithNoMeetings = PersonBuilder.aPerson().withId("id2").withName("John Smith").build();
         List<Meeting> listOfMeetings = meetingsService.listOfMeetingsPersonIsIn(personWithNoMeetings);
@@ -83,8 +89,8 @@ class MeetingServiceUnitTest {
         Meeting meetingPersonIsIn = MeetingBuilder.aMeeting().withAttendee(personParticipatingInMeeting).build();
 
         List<Meeting> expectedMeetingList = List.of(meetingPersonIsIn);
-        List<Meeting> meetingListToStub = new ArrayList<>(List.of(meetingWithoutAttendees, meetingPersonIsIn));
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingListToStub);
+        meetings.add(meetingWithoutAttendees);
+        meetings.add(meetingPersonIsIn);
 
         List<Meeting> listOfMeetings = meetingsService.listOfMeetingsPersonIsIn(personParticipatingInMeeting);
         assertIterableEquals(listOfMeetings, expectedMeetingList);
@@ -100,8 +106,8 @@ class MeetingServiceUnitTest {
         Person personWithAConflictingMeeting = PersonBuilder.aPerson().build();
         Meeting meeting = MeetingBuilder.aMeeting().withStartDate(start1).withEndDate(end1).withAttendee(personWithAConflictingMeeting).build();
         Meeting meetingToBeAttended = MeetingBuilder.aMeeting().withStartDate(start2).withEndDate(end2).build();
-        List<Meeting> meetingListToStub = new ArrayList<>(List.of(meeting, meetingToBeAttended));
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingListToStub);
+        meetings.add(meeting);
+        meetings.add(meetingToBeAttended);
 
         assertTrue(meetingsService.personHasConflictingMeetings(personWithAConflictingMeeting, meetingToBeAttended));
     }
@@ -116,8 +122,8 @@ class MeetingServiceUnitTest {
         Person personWithoutConflictingMeeting = PersonBuilder.aPerson().build();
         Meeting meeting = MeetingBuilder.aMeeting().withStartDate(start1).withEndDate(end1).withAttendee(personWithoutConflictingMeeting).build();
         Meeting nonOverlappingMeeting = MeetingBuilder.aMeeting().withStartDate(start2).withEndDate(end2).build();
-        List<Meeting> meetingListToStub = new ArrayList<>(List.of(meeting, nonOverlappingMeeting));
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingListToStub);
+        meetings.add(meeting);
+        meetings.add(nonOverlappingMeeting);
 
         assertFalse(meetingsService.personHasConflictingMeetings(personWithoutConflictingMeeting, nonOverlappingMeeting));
     }
@@ -171,14 +177,14 @@ class MeetingServiceUnitTest {
         Meeting updatedMeeting = meetingsService.addPersonToMeeting(meeting.getId(), person);
         boolean doesMeetingContainPersonAsAttendee = updatedMeeting.getAttendees().stream().anyMatch(attendee -> attendee.getPerson().getId().equals(person.getId()));
         assertTrue(doesMeetingContainPersonAsAttendee);
-        Mockito.verify(repository).writeMeetings(new ArrayList<Meeting>(List.of(updatedMeeting)));
+        Mockito.verify(repository).writeMeetings(new ArrayList<>(List.of(updatedMeeting)));
     }
 
     @Test
     void tryingToAddAlreadyAddedPersonToMeetingThrowsException() {
         Person person = PersonBuilder.aPerson().build();
         Meeting meeting = MeetingBuilder.aMeeting().withAttendee(person).build();
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+        meetings.add(meeting);
 
         Exception exception = assertThrows(BadRequestException.class, () -> meetingsService.addPersonToMeeting(meeting.getId(), person));
         String expectedMessage = "Person already added to meeting";
@@ -197,8 +203,8 @@ class MeetingServiceUnitTest {
         LocalDateTime end2 = LocalDateTime.of(2025, 10, 17, 12, 0, 0); //2025-10-17 12:00:00
         Meeting overlappingMeeting = MeetingBuilder.aMeeting().withStartDate(start2).withEndDate(end2).build();
 
-        List<Meeting> meetingsToBeStubbed = new ArrayList<>(List.of(meetingWithPersonAddedAsAttendee, overlappingMeeting));
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingsToBeStubbed);
+        meetings.add(meetingWithPersonAddedAsAttendee);
+        meetings.add(overlappingMeeting);
 
         Exception exception = assertThrows(BadRequestException.class, () -> meetingsService.addPersonToMeeting(overlappingMeeting.getId(), person));
         String expectedMessage = "Person has conflicting meetings";
@@ -211,12 +217,12 @@ class MeetingServiceUnitTest {
         Person person = PersonBuilder.aPerson().build();
         Meeting meeting = MeetingBuilder.aMeeting().withAttendee(person).build();
         String attendeeId = meeting.getAttendees().get(0).getId();
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+        meetings.add(meeting);
 
         Meeting updatedMeeting = meetingsService.removeAttendeeFromMeeting(meeting.getId(), attendeeId);
         boolean isAttendeeRemovedFromMeeting = updatedMeeting.getAttendees().stream().noneMatch(attendee -> attendee.getPerson().getId().equals(person.getId()));
         assertTrue(isAttendeeRemovedFromMeeting);
-        Mockito.verify(repository).writeMeetings(new ArrayList<Meeting>(List.of(updatedMeeting)));
+        Mockito.verify(repository).writeMeetings(new ArrayList<>(List.of(updatedMeeting)));
     }
 
     @Test
@@ -225,8 +231,8 @@ class MeetingServiceUnitTest {
         Meeting meetingWithAttendee = MeetingBuilder.aMeeting().withAttendee(person).build();
         Meeting meetingWithOutAttendee = MeetingBuilder.aMeeting().build();
         String attendeeId = meetingWithAttendee.getAttendees().get(0).getId();
-        List<Meeting> meetingsToBeStubbed = new ArrayList<>(List.of(meetingWithAttendee, meetingWithOutAttendee));
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meetingsToBeStubbed);
+        meetings.add(meetingWithAttendee);
+        meetings.add(meetingWithOutAttendee);
 
         Exception exception = assertThrows(NotFoundException.class, () -> meetingsService.removeAttendeeFromMeeting(meetingWithOutAttendee.getId(), attendeeId));
         String expectedMessage = "Attendee not found";
@@ -239,7 +245,7 @@ class MeetingServiceUnitTest {
         Person person = PersonBuilder.aPerson().build();
         Meeting meeting = MeetingBuilder.aMeeting().withResponsiblePerson(person).withAttendee(person).build();
         String attendeeId = meeting.getAttendees().get(0).getId();
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+        meetings.add(meeting);
 
         Exception exception = assertThrows(BadRequestException.class, () -> meetingsService.removeAttendeeFromMeeting(meeting.getId(), attendeeId));
         String expectedMessage = "Cannot remove responsible person from meeting";
@@ -251,10 +257,10 @@ class MeetingServiceUnitTest {
     void deleteMeetingAsResponsiblePerson() {
         Person person = PersonBuilder.aPerson().build();
         Meeting meeting = MeetingBuilder.aMeeting().withResponsiblePerson(person).build();
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+        meetings.add(meeting);
 
         meetingsService.deleteMeeting(meeting.getId(), person.getId());
-        Mockito.verify(repository).writeMeetings(new ArrayList<Meeting>(List.of()));
+        Mockito.verify(repository).writeMeetings(new ArrayList<>(List.of()));
     }
 
     @Test
@@ -262,7 +268,7 @@ class MeetingServiceUnitTest {
         Person nonResponsiblePerson = PersonBuilder.aPerson().build();
         Person responsiblePerson = PersonBuilder.aPerson().build();
         Meeting meeting = MeetingBuilder.aMeeting().withResponsiblePerson(responsiblePerson).build();
-        meetingsService = TestUtils.getMeetingServiceWithInjectedStubbedRepository(repository, meeting);
+        meetings.add(meeting);
 
         Exception exception = assertThrows(UnauthorizedException.class, () -> meetingsService.deleteMeeting(meeting.getId(), nonResponsiblePerson.getId()));
         String expectedMessage = "Unauthorized";
