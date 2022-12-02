@@ -1,9 +1,9 @@
 package com.example.Meetings_API.Services;
 
 
-import com.example.Meetings_API.Exceptions.BadRequestException;
-import com.example.Meetings_API.Exceptions.NotFoundException;
-import com.example.Meetings_API.Exceptions.UnauthorizedException;
+import com.example.Meetings_API.Exceptions.badRequest.BadRequestException;
+import com.example.Meetings_API.Exceptions.notFound.NotFoundException;
+import com.example.Meetings_API.Exceptions.unauthorized.UnauthorizedException;
 import com.example.Meetings_API.Models.*;
 import com.example.Meetings_API.Repository.MeetingsRepository;
 import com.example.Meetings_API.Utils.MeetingBuilder;

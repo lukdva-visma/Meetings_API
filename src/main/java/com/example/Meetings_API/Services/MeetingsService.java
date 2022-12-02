@@ -1,8 +1,10 @@
 package com.example.Meetings_API.Services;
 
-import com.example.Meetings_API.Exceptions.BadRequestException;
-import com.example.Meetings_API.Exceptions.NotFoundException;
-import com.example.Meetings_API.Exceptions.UnauthorizedException;
+import com.example.Meetings_API.Exceptions.badRequest.CannotRemoveResponsiblePersonFromMeetingException;
+import com.example.Meetings_API.Exceptions.badRequest.PersonAlreadyAddedToMeetingException;
+import com.example.Meetings_API.Exceptions.badRequest.PersonHasConflictingMeetingException;
+import com.example.Meetings_API.Exceptions.notFound.NotFoundException;
+import com.example.Meetings_API.Exceptions.unauthorized.WrongEntityOwnerException;
 import com.example.Meetings_API.Models.*;
 import com.example.Meetings_API.Repository.MeetingsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +20,9 @@ import java.util.stream.Stream;
 @Service
 public class MeetingsService {
 
-    private MeetingsRepository repository;
-    private List<Meeting> meetings;
+    private final MeetingsRepository repository;
+    private final List<Meeting> meetings;
 
-    @Autowired
     public MeetingsService(MeetingsRepository repository) {
         this.repository = repository;
         this.meetings = this.repository.readMeetings();
@@ -29,14 +30,14 @@ public class MeetingsService {
 
     public void addMeeting(Meeting meeting) {
         if (personHasConflictingMeetings(meeting.getResponsiblePerson(), meeting)) {
-            throw new BadRequestException("Person has conflicting meetings");
+            throw new PersonHasConflictingMeetingException(meeting.getResponsiblePerson(), meeting);
         }
         meetings.add(meeting);
         repository.writeMeetings(meetings);
     }
 
     public Meeting getMeeting(String id) {
-        return meetings.stream().filter(m -> m.getId().equals(id)).findFirst().orElseThrow(() -> new NotFoundException("Meeting not found"));
+        return meetings.stream().filter(m -> m.getId().equals(id)).findFirst().orElseThrow(() -> new NotFoundException("Meeting", id));
     }
 
     public void removeMeeting(Meeting meeting) {
@@ -68,10 +69,10 @@ public class MeetingsService {
     public Meeting addPersonToMeeting(String meetingId, Person person) {
         Meeting meeting = getMeeting(meetingId);
         if (meeting.doesContainPersonAsAttendee(person.getId())) {
-            throw new BadRequestException("Person already added to meeting");
+            throw new PersonAlreadyAddedToMeetingException(person, meeting);
         }
         if (personHasConflictingMeetings(person, meeting)) {
-            throw new BadRequestException("Person has conflicting meetings");
+            throw new PersonHasConflictingMeetingException(person, meeting);
         }
         meeting.addAttendee(person);
         repository.writeMeetings(meetings);
@@ -81,11 +82,11 @@ public class MeetingsService {
     public Meeting removeAttendeeFromMeeting(String meetingId, String attendeeId) {
         Meeting meeting = getMeeting(meetingId);
         if (!meeting.isAttendeeAvailable(attendeeId)) {
-            throw new NotFoundException("Attendee not found");
+            throw new NotFoundException("Attendee", attendeeId);
         }
         Attendee attendee = meeting.getAttendee(attendeeId);
         if (attendee.getPerson().getId().equals(meeting.getResponsiblePerson().getId())) {
-            throw new BadRequestException("Cannot remove responsible person from meeting");
+            throw new CannotRemoveResponsiblePersonFromMeetingException(meeting.getResponsiblePerson(), meeting);
         }
         meeting.removeAttendee(attendee);
         repository.writeMeetings(meetings);
@@ -95,7 +96,7 @@ public class MeetingsService {
     public void deleteMeeting(String meetingId, String personId) {
         Meeting meeting = getMeeting(meetingId);
         if (!meeting.getResponsiblePerson().getId().equals(personId)) {
-            throw new UnauthorizedException();
+            throw new WrongEntityOwnerException("Meeting", meetingId, personId);
         }
         removeMeeting(meeting);
     }
@@ -157,7 +158,6 @@ public class MeetingsService {
             stream = stream.filter(byEndDate(filters.getEnd().plusDays(1).atStartOfDay()));
         }
 
-        List<Meeting> filteredMeetings = stream.collect(Collectors.toList());
-        return filteredMeetings;
+        return stream.collect(Collectors.toList());
     }
 }
